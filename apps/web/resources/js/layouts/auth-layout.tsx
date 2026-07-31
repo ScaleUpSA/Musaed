@@ -19,7 +19,7 @@ export default function AuthLayout({ children, title, description }: { children:
                             </span>
                         </Link>
                         <div className="mt-24 max-w-sm">
-                            <p className="mb-4 text-sm font-medium tracking-[0.2em] text-blue-200 uppercase">{t('auth.eyebrow')}</p>
+                            <p className="mb-4 text-sm font-medium text-blue-200">{t('auth.eyebrow')}</p>
                             <p className="text-3xl leading-[1.35] font-semibold">{t('auth.brand_message')}</p>
                         </div>
                     </div>
