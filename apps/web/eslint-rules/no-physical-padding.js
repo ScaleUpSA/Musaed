@@ -1,13 +1,28 @@
-const physicalPadding = /\b(?:pl|pr)-[^\s'"]+/g;
+const directionalUtilities = /(?:^|[\s:])(-?(?:pl|pr|ml|mr|left|right|text-left|text-right)-[^\s'"]+)/g;
+const replacements = {
+    pl: 'ps',
+    pr: 'pe',
+    ml: 'ms',
+    mr: 'me',
+    left: 'start',
+    right: 'end',
+    'text-left': 'text-start',
+    'text-right': 'text-end',
+};
 
 function checkNode(context, node, value) {
-    const match = value.match(physicalPadding);
+    for (const match of value.matchAll(directionalUtilities)) {
+        const utility = match[1];
+        const unsignedUtility = utility.startsWith('-') ? utility.slice(1) : utility;
+        const prefix = Object.keys(replacements).find((key) => unsignedUtility.startsWith(`${key}-`));
+        const replacement = prefix ? `${utility.startsWith('-') ? '-' : ''}${replacements[prefix]}` : undefined;
 
-    if (match) {
-        context.report({
-            node,
-            message: `Use logical padding utilities instead of ${match[0]}.`,
-        });
+        if (prefix && replacement) {
+            context.report({
+                node,
+                message: `Use ${replacement}-${unsignedUtility.slice(prefix.length + 1)} instead of ${utility} for RTL support.`,
+            });
+        }
     }
 }
 
@@ -17,7 +32,7 @@ export default {
             meta: {
                 type: 'problem',
                 docs: {
-                    description: 'Disallow physical Tailwind padding utilities.',
+                    description: 'Disallow physical directional Tailwind utilities.',
                 },
                 schema: [],
             },

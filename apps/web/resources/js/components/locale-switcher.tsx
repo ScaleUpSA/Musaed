@@ -1,32 +1,14 @@
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useLocale } from '@/hooks/use-locale';
 import { useTranslations } from '@/hooks/use-translations';
-import { type Locale, type SharedData } from '@/types';
-import { router, usePage } from '@inertiajs/react';
+import { type Locale } from '@/types';
 
 const locales: Locale[] = ['ar', 'en'];
 
 export function LocaleSwitcher() {
-    const { locale } = usePage<SharedData>().props;
+    const { locale, changeLocale } = useLocale();
     const t = useTranslations();
-
-    const changeLocale = (nextLocale: Locale) => {
-        if (nextLocale === locale) {
-            return;
-        }
-
-        router.post(
-            route('locale.update'),
-            { locale: nextLocale },
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    document.documentElement.lang = nextLocale;
-                    document.documentElement.dir = nextLocale === 'ar' ? 'rtl' : 'ltr';
-                },
-            },
-        );
-    };
 
     return (
         <>
@@ -41,22 +23,8 @@ export function LocaleSwitcher() {
 }
 
 export function AuthLocaleSwitcher() {
-    const { locale } = usePage<SharedData>().props;
+    const { locale, changeLocale } = useLocale();
     const t = useTranslations();
-
-    const changeLocale = (nextLocale: Locale) => {
-        if (nextLocale === locale) {
-            return;
-        }
-
-        router.post(route('locale.update'), { locale: nextLocale }, {
-            preserveScroll: true,
-            onSuccess: () => {
-                document.documentElement.lang = nextLocale;
-                document.documentElement.dir = nextLocale === 'ar' ? 'rtl' : 'ltr';
-            },
-        });
-    };
 
     return (
         <div className="flex items-center justify-center gap-1" aria-label={t('locale.switch')}>

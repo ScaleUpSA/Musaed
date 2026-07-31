@@ -203,9 +203,11 @@ const Sidebar = React.forwardRef<
             <div
                 className={cn(
                     'fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear md:flex',
+                    /* eslint-disable logical-css/no-physical-padding -- sidebar side variants require physical positioning. */
                     side === 'left'
                         ? 'left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]'
                         : 'right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]',
+                    /* eslint-enable logical-css/no-physical-padding */
                     // Adjust the padding for floating and inset variants.
                     variant === 'floating' || variant === 'inset'
                         ? 'p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]'
@@ -265,12 +267,14 @@ const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'bu
             onClick={toggleSidebar}
             title={t('nav.toggle_sidebar')}
             className={cn(
+                /* eslint-disable logical-css/no-physical-padding -- sidebar side variants require physical positioning. */
                 'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex',
                 'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
                 '[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize',
                 'group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full hover:group-data-[collapsible=offcanvas]:bg-sidebar',
                 '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
                 '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
+                /* eslint-enable logical-css/no-physical-padding */
                 className,
             )}
             {...props}
@@ -285,7 +289,7 @@ const SidebarInset = React.forwardRef<HTMLDivElement, React.ComponentProps<'main
             ref={ref}
             className={cn(
                 'relative flex min-h-svh flex-1 flex-col bg-background',
-                'peer-data-[variant=inset]:min-h-[calc(100svh-(--spacing(4)))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm',
+                'peer-data-[variant=inset]:min-h-[calc(100svh-(--spacing(4)))] md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ms-2 md:peer-data-[variant=inset]:ms-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm',
                 className,
             )}
             {...props}
@@ -369,7 +373,7 @@ const SidebarGroupAction = React.forwardRef<HTMLButtonElement, React.ComponentPr
                 ref={ref}
                 data-sidebar="group-action"
                 className={cn(
-                    'absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
+                    'absolute end-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0',
                     // Increases the hit area of the button on mobile.
                     'after:absolute after:-inset-2 md:after:hidden',
                     'group-data-[collapsible=icon]:hidden',
@@ -474,7 +478,7 @@ const SidebarMenuAction = React.forwardRef<
             ref={ref}
             data-sidebar="menu-action"
             className={cn(
-                'absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0',
+                'absolute end-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-hidden ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0',
                 // Increases the hit area of the button on mobile.
                 'after:absolute after:-inset-2 md:after:hidden',
                 'peer-data-[size=sm]/menu-button:top-1',
@@ -496,7 +500,7 @@ const SidebarMenuBadge = React.forwardRef<HTMLDivElement, React.ComponentProps<'
         ref={ref}
         data-sidebar="menu-badge"
         className={cn(
-            'pointer-events-none absolute right-1 flex h-5 min-w-5 select-none items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground',
+            'pointer-events-none absolute end-1 flex h-5 min-w-5 select-none items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground',
             'peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground',
             'peer-data-[size=sm]/menu-button:top-1',
             'peer-data-[size=default]/menu-button:top-1.5',
