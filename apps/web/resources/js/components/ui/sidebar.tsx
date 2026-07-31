@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useTranslations } from '@/hooks/use-translations';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -228,6 +229,7 @@ Sidebar.displayName = 'Sidebar';
 const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.ComponentProps<typeof Button>>(
     ({ className, onClick, ...props }, ref) => {
         const { toggleSidebar } = useSidebar();
+        const t = useTranslations();
 
         return (
             <Button
@@ -243,7 +245,7 @@ const SidebarTrigger = React.forwardRef<React.ElementRef<typeof Button>, React.C
                 {...props}
             >
                 <PanelLeft />
-                <span className="sr-only">Toggle Sidebar</span>
+                <span className="sr-only">{t('nav.toggle_sidebar')}</span>
             </Button>
         );
     },
@@ -252,15 +254,16 @@ SidebarTrigger.displayName = 'SidebarTrigger';
 
 const SidebarRail = React.forwardRef<HTMLButtonElement, React.ComponentProps<'button'>>(({ className, ...props }, ref) => {
     const { toggleSidebar } = useSidebar();
+    const t = useTranslations();
 
     return (
         <button
             ref={ref}
             data-sidebar="rail"
-            aria-label="Toggle Sidebar"
+            aria-label={t('nav.toggle_sidebar')}
             tabIndex={-1}
             onClick={toggleSidebar}
-            title="Toggle Sidebar"
+            title={t('nav.toggle_sidebar')}
             className={cn(
                 'absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex',
                 'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',
@@ -395,7 +398,7 @@ const SidebarMenuItem = React.forwardRef<HTMLLIElement, React.ComponentProps<'li
 SidebarMenuItem.displayName = 'SidebarMenuItem';
 
 const sidebarMenuButtonVariants = cva(
-    'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
+    'peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-start text-sm outline-hidden ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pe-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0',
     {
         variants: {
             variant: {

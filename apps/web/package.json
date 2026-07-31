@@ -10,6 +10,7 @@
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint .",
+        "test": "vitest run",
         "typecheck": "tsc --noEmit"
     },
     "devDependencies": {
@@ -21,7 +22,8 @@
         "prettier": "^3.4.2",
         "prettier-plugin-organize-imports": "^4.1.0",
         "prettier-plugin-tailwindcss": "^0.6.11",
-        "typescript-eslint": "^8.23.0"
+        "typescript-eslint": "^8.23.0",
+        "vitest": "^3.2.7"
     },
     "dependencies": {
         "@headlessui/react": "^2.2.0",
@@ -51,12 +53,12 @@
         "lucide-react": "^0.475.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",
-        "ziggy-js": "2.6.3",
         "tailwind-merge": "^3.0.1",
         "tailwindcss": "^4.0.0",
         "tailwindcss-animate": "^1.0.7",
         "typescript": "^5.7.2",
-        "vite": "^6.0"
+        "vite": "^6.0",
+        "ziggy-js": "2.6.3"
     },
     "optionalDependencies": {
         "@rollup/rollup-linux-x64-gnu": "4.9.5",

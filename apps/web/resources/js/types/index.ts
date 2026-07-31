@@ -23,10 +23,16 @@ export interface NavItem {
 
 export interface SharedData {
     name: string;
-    quote: { message: string; author: string };
+    locale: Locale;
+    translations: TranslationCatalogue;
     auth: Auth;
     [key: string]: unknown;
 }
+
+export type Locale = 'ar' | 'en';
+export type TranslationCatalogue = {
+    [key: string]: string | TranslationCatalogue;
+};
 
 export interface User {
     id: number;

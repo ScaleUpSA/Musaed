@@ -4,12 +4,13 @@ import { NavUser } from '@/components/nav-user';
 import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import { BookOpen, Folder, LayoutGrid } from 'lucide-react';
 import AppLogo from './app-logo';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'nav.dashboard',
         url: '/dashboard',
         icon: LayoutGrid,
     },
@@ -17,20 +18,22 @@ const mainNavItems: NavItem[] = [
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
+        title: 'nav.repository',
         url: 'https://github.com/ScaleUpSA/Musaed',
         icon: Folder,
     },
     {
-        title: 'Documentation',
+        title: 'nav.documentation',
         url: 'https://github.com/ScaleUpSA/Musaed/tree/main/docs',
         icon: BookOpen,
     },
 ];
 
 export function AppSidebar() {
+    const { locale } = usePage<{ locale: 'ar' | 'en' }>().props;
+
     return (
-        <Sidebar collapsible="icon" variant="inset">
+        <Sidebar collapsible="icon" variant="inset" side={locale === 'ar' ? 'right' : 'left'}>
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>

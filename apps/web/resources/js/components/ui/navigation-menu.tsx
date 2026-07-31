@@ -22,7 +22,7 @@ const NavigationMenuList = React.forwardRef<
 >(({ className, ...props }, ref) => (
     <NavigationMenuPrimitive.List
         ref={ref}
-        className={cn('group flex flex-1 list-none items-center justify-center space-x-1', className)}
+        className={cn('group flex flex-1 list-none items-center justify-center gap-1', className)}
         {...props}
     />
 ));
@@ -40,7 +40,7 @@ const NavigationMenuTrigger = React.forwardRef<
 >(({ className, children, ...props }, ref) => (
     <NavigationMenuPrimitive.Trigger ref={ref} className={cn(navigationMenuTriggerStyle(), 'group', className)} {...props}>
         {children}{' '}
-        <ChevronDown className="relative top-[1px] ml-1 h-3 w-3 transition duration-200 group-data-[state=open]:rotate-180" aria-hidden="true" />
+        <ChevronDown className="relative top-[1px] ms-1 h-3 w-3 transition duration-200 group-data-[state=open]:rotate-180" aria-hidden="true" />
     </NavigationMenuPrimitive.Trigger>
 ));
 NavigationMenuTrigger.displayName = NavigationMenuPrimitive.Trigger.displayName;
