@@ -209,30 +209,32 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
             </div>
 
             <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
-                <div className="mx-auto flex max-w-3xl flex-col gap-5">
+                <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
                     {messages.map((message, index) => (
-                        <div key={`${message}-${index}`} className="flex justify-end">
-                            <div className="bg-primary text-primary-foreground max-w-[85%] rounded-2xl rounded-ee-sm px-4 py-3 text-sm">
+                        <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
+                            <div className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,42rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
                                 {message}
                             </div>
                         </div>
                     ))}
 
                     {state.assistantText.length > 0 && (
-                        <div className="flex items-start gap-3">
-                            <div className="bg-primary text-primary-foreground flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-                                م
+                        <div className="flex max-w-full flex-col items-start">
+                            <div className="text-primary mb-2 flex items-center gap-2 text-xs font-semibold">
+                                <span className="bg-primary size-1.5 rounded-full" />
+                                {t('workspace.assistant')}
                             </div>
-                            <div className="bg-muted max-w-[85%] rounded-2xl rounded-es-sm px-4 py-3 text-sm leading-6 whitespace-pre-wrap">
-                                <div className="text-muted-foreground mb-1 text-xs font-medium">{t('workspace.assistant')}</div>
+                            <div className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
                                 {state.assistantText}
                             </div>
                         </div>
                     )}
 
-                    <ToolActivity state={state} />
+                    <div className="max-w-[min(100%,48rem)]">
+                        <ToolActivity state={state} />
+                    </div>
 
-                    {state.assistantText.length === 0 && state.status === 'idle' && (
+                    {messages.length === 0 && state.assistantText.length === 0 && state.tools.length === 0 && state.status === 'idle' && (
                         <p className="text-muted-foreground py-20 text-center text-sm">{t('workspace.empty_conversation')}</p>
                     )}
 

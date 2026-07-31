@@ -136,7 +136,7 @@
     --radius-lg-token: 1rem;
     --radius-md-token: 0.75rem;
     --radius-sm-token: 0.5rem;
-    --surface-subtle: #eef3f9;
+    --surface-subtle: #f0f2f5;
 }
 
 .dark {
@@ -164,7 +164,7 @@
     --chart-3: #e2a34f;
     --chart-4: #a68ad4;
     --chart-5: #e0788a;
-    --surface-subtle: #0f1b2d;
+    --surface-subtle: #111821;
 }
 
 @layer base {
