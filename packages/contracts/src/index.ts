@@ -19,7 +19,7 @@ const runEnvelopeProperties = {
     sandbox: Type.Object(
       {
         enabled: Type.Boolean(),
-        cpuLimit: Type.Integer({ exclusiveMinimum: 0 }),
+        cpuLimitMillicores: Type.Integer({ exclusiveMinimum: 0 }),
         memoryLimitMb: Type.Integer({ exclusiveMinimum: 0 }),
         pidsLimit: Type.Integer({ exclusiveMinimum: 0 }),
       },
@@ -99,7 +99,7 @@ export const SandboxRequestSchema = Type.Object(
   {
     runId: nonEmptyString(),
     image: nonEmptyString(),
-    cpuLimit: Type.Number({ exclusiveMinimum: 0, maximum: 64 }),
+    cpuLimitMillicores: Type.Integer({ exclusiveMinimum: 0, maximum: 64_000 }),
     memoryLimitMb: Type.Number({ exclusiveMinimum: 16, maximum: 65_536 }),
   },
   { additionalProperties: false },

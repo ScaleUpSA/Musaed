@@ -33,7 +33,7 @@ const claims = {
   litellmVirtualKey: "sk-virtual-run",
   sandbox: {
     enabled: false,
-    cpuLimit: 1,
+    cpuLimitMillicores: 1_000,
     memoryLimitMb: 1024,
     pidsLimit: 64,
   },

@@ -29,7 +29,7 @@ describe("contracts", () => {
       litellmVirtualKey: "sk-virtual-run",
       sandbox: {
         enabled: true,
-        cpuLimit: 2,
+        cpuLimitMillicores: 1_500,
         memoryLimitMb: 3072,
         pidsLimit: 128,
       },

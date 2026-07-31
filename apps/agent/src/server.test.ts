@@ -28,7 +28,7 @@ const claims = {
   litellmVirtualKey: "sk-virtual-run",
   sandbox: {
     enabled: false,
-    cpuLimit: 1,
+    cpuLimitMillicores: 1_000,
     memoryLimitMb: 1024,
     pidsLimit: 64,
   },
@@ -93,7 +93,10 @@ describe("agent service", () => {
     const numericStringResponse = await app.inject({
       method: "POST",
       url: "/runs/prepare",
-      payload: { ...envelope, sandbox: { ...envelope.sandbox, cpuLimit: "1" } },
+      payload: {
+        ...envelope,
+        sandbox: { ...envelope.sandbox, cpuLimitMillicores: "1000" },
+      },
     });
     const stringArrayResponse = await app.inject({
       method: "POST",

@@ -20,7 +20,7 @@ describe("broker service", () => {
       payload: {
         runId: "run-1",
         image: "sandbox:latest",
-        cpuLimit: 2,
+        cpuLimitMillicores: 1_500,
         memoryLimitMb: 512,
       },
     });
@@ -37,9 +37,25 @@ describe("broker service", () => {
   it("rejects malformed and unsafe sandbox requests", async () => {
     const app = buildServer();
     const cases = [
-      { runId: "run-1", image: "sandbox:latest", cpuLimit: 0, memoryLimitMb: 512 },
-      { runId: "run-1", image: "sandbox:latest", cpuLimit: 2, memoryLimitMb: 8 },
-      { runId: "run-1", image: "sandbox:latest", cpuLimit: 2, memoryLimitMb: 512, extra: true },
+      {
+        runId: "run-1",
+        image: "sandbox:latest",
+        cpuLimitMillicores: 0,
+        memoryLimitMb: 512,
+      },
+      {
+        runId: "run-1",
+        image: "sandbox:latest",
+        cpuLimitMillicores: 2_000,
+        memoryLimitMb: 8,
+      },
+      {
+        runId: "run-1",
+        image: "sandbox:latest",
+        cpuLimitMillicores: 2_000,
+        memoryLimitMb: 512,
+        extra: true,
+      },
     ];
 
     for (const payload of cases) {

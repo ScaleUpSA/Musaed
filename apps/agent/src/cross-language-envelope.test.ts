@@ -28,7 +28,7 @@ const claims = {
   unicodeProbe: "😀\u0001",
   sandbox: {
     enabled: false,
-    cpuLimit: 2,
+    cpuLimitMillicores: 2_000,
     memoryLimitMb: 1024,
     pidsLimit: 64,
   },
@@ -50,7 +50,10 @@ it("verifies a Laravel-signed envelope in Node", () => {
     .export({ format: "der", type: "spki" })
     .subarray(-32);
   const privateKey = Buffer.concat([privateSeed, publicKey]).toString("base64");
-  const claimsJson = JSON.stringify(claims).replace('"cpuLimit":2', '"cpuLimit":2.0');
+  const claimsJson = JSON.stringify(claims).replace(
+    '"cpuLimitMillicores":2000',
+    '"cpuLimitMillicores":2000.0',
+  );
   const result = spawnSync("php", [
     "apps/web/tests/Fixtures/sign-envelope.php",
     claimsJson,
