@@ -39,7 +39,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       REDIS_HOST: redis
     ports:
-      - "8000:8000"
+      - "${WEB_PORT:-8000}:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,8 +53,9 @@ services:
     environment:
       PORT: 3001
       AGENT_RUN_ROOT: /var/lib/musaed/runs
+      LITELLM_URL: http://litellm:4000
     ports:
-      - "3001:3001"
+      - "${AGENT_PORT:-3001}:3001"
     depends_on:
       - broker
 
@@ -65,7 +66,7 @@ services:
     environment:
       PORT: 3002
     ports:
-      - "3002:3002"
+      - "${BROKER_PORT:-3002}:3002"
 
   litellm:
     image: ghcr.io/berriai/litellm:main-latest
@@ -77,7 +78,7 @@ services:
     volumes:
       - ./litellm.config.yaml:/app/config.yaml:ro
     ports:
-      - "4000:4000"
+      - "${LITELLM_PORT:-4000}:4000"
     depends_on:
       postgres:
         condition: service_healthy

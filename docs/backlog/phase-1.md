@@ -46,7 +46,7 @@ Cancel from the UI: `AgentSession.abort()`, in-flight model request cancelled, s
 
 ## 7. Policy extension
 
-A `tool_call` hook returning `{ block: true }` for anything outside the envelope's allow-list, plus the separate `user_bash` path.
+A `tool_call` hook returning `{ block: true }` for anything outside the envelope's allow-list, plus the separate `user_bash` path. Until this item lands, the allow-list is advisory only; the runtime does not enforce non-empty allow-lists.
 
 **Done when:** a blocked tool provably does not execute (assert on the side effect, not the transcript); the block is recorded in the audit trail; a test covers `user_bash` independently of `tool_call`.
 

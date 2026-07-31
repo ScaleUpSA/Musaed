@@ -1,9 +1,4 @@
-export interface SandboxRequest {
-  runId: string;
-  image: string;
-  cpuLimit: number;
-  memoryLimitMb: number;
-}
+import type { SandboxRequest } from "@musaed/contracts";
 
 export interface SandboxHandle {
   id: string;
@@ -19,17 +14,17 @@ export interface SandboxBroker {
 export class InMemorySandboxBroker implements SandboxBroker {
   private readonly sandboxes = new Map<string, SandboxHandle>();
 
-  async create(_request: SandboxRequest): Promise<SandboxHandle> {
+  async create(request: SandboxRequest): Promise<SandboxHandle> {
     const handle: SandboxHandle = {
-      id: `sandbox-${_request.runId}`,
-      runId: _request.runId,
+      id: `sandbox-${request.runId}`,
+      runId: request.runId,
       status: "running",
     };
     this.sandboxes.set(handle.id, handle);
     return handle;
   }
 
-  async destroy(_id: string): Promise<void> {
-    this.sandboxes.delete(_id);
+  async destroy(id: string): Promise<void> {
+    this.sandboxes.delete(id);
   }
 }
