@@ -1,5 +1,6 @@
 import {
     CheckCircle2,
+    ChevronLeft,
     CircleDot,
     CircleStop,
     FileText,
@@ -30,25 +31,28 @@ type Conversation = {
     preview: string;
 };
 
-export function ConversationRail({ conversations, selectedId, onSelect, onNew }: { conversations: Conversation[]; selectedId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
+export function ConversationRail({ conversations, selectedId, onSelect, onNew, collapsed, onToggle }: { conversations: Conversation[]; selectedId: string | null; onSelect: (id: string) => void; onNew: () => void; collapsed: boolean; onToggle: () => void }) {
     const t = useTranslations();
     const { auth } = usePage<SharedData>().props;
 
     return (
         <aside className="bg-surface-subtle border-border/80 flex min-h-0 flex-col border-e">
-            <div className="border-border/80 flex items-center justify-between gap-3 border-b px-5 py-5">
-                <Link href="/workspace" className="flex min-w-0 items-center">
+            <div className={cn('border-border/80 flex items-center gap-2 border-b py-5', collapsed ? 'flex-col px-2' : 'justify-between px-4')}>
+                {!collapsed && <Link href="/workspace" className="flex min-w-0 items-center">
                     <AppLogo />
-                </Link>
+                </Link>}
                 <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onNew} aria-label={t('workspace.new_conversation')}>
                     <Plus className="size-4" />
                 </Button>
+                <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onToggle} aria-label={t(collapsed ? 'workspace.rail_expand' : 'workspace.rail_collapse')}>
+                    <ChevronLeft className={cn('size-4', collapsed && 'rtl:rotate-180')} />
+                </Button>
             </div>
-            <div className="px-4 pt-5 pb-2">
+            {!collapsed && <div className="px-4 pt-5 pb-2">
                 <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold">{t('workspace.conversations')}</p>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-3">
-                {conversations.map((conversation) => <button
+            </div>}
+            <div className={cn('min-h-0 flex-1 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
+                {!collapsed && conversations.map((conversation) => <button
                     key={conversation.id}
                     type="button"
                     className={cn(
@@ -66,12 +70,12 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew }:
                     </span>
                 </button>)}
             </div>
-            <div className="border-border/80 border-t p-3">
+            <div className={cn('border-border/80 border-t', collapsed ? 'p-2' : 'p-3')}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-3 text-start">
+                        <Button variant="ghost" className={cn('h-auto w-full rounded-xl py-3 text-start', collapsed ? 'justify-center px-0 [&>div:last-child]:hidden' : 'justify-start gap-3 px-3')}>
                             <UserInfo user={auth.user} />
-                            <span className="text-muted-foreground ms-auto">•••</span>
+                            {!collapsed && <span className="text-muted-foreground ms-auto">•••</span>}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-64 rounded-xl" align="end" side="top">
@@ -300,6 +304,13 @@ export default function WorkspaceShell({
 }) {
     const [selectedId, setSelectedId] = useState<string | null>(conversationId);
     const [panelOpen, setPanelOpen] = useState(true);
+    const [railCollapsed, setRailCollapsed] = useState(
+        () => typeof window !== 'undefined' && window.localStorage.getItem('musaed.rail-collapsed') === 'true',
+    );
+
+    useEffect(() => {
+        window.localStorage.setItem('musaed.rail-collapsed', String(railCollapsed));
+    }, [railCollapsed]);
 
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -307,8 +318,12 @@ export default function WorkspaceShell({
                 className={cn(
                     'bg-card border-border/80 grid min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-[0_16px_50px_-36px_rgba(17,81,180,0.55)]',
                     panelOpen
-                        ? 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_minmax(15rem,20rem)]'
-                        : 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_auto]',
+                        ? railCollapsed
+                            ? 'grid-cols-[4.5rem_minmax(0,1fr)_minmax(15rem,20rem)]'
+                            : 'grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)_minmax(15rem,20rem)]'
+                        : railCollapsed
+                          ? 'grid-cols-[4.5rem_minmax(0,1fr)_auto]'
+                          : 'grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)_auto]',
                 )}
             >
                 <ConversationRail
@@ -318,6 +333,8 @@ export default function WorkspaceShell({
                         preview: item.message_count > 0 ? 'workspace.conversation_preview' : 'workspace.empty_conversation',
                     }))}
                     selectedId={selectedId}
+                    collapsed={railCollapsed}
+                    onToggle={() => setRailCollapsed((collapsed) => !collapsed)}
                     onSelect={(id) => {
                         setSelectedId(id);
                         router.visit(`/workspace?conversation_id=${encodeURIComponent(id)}`, { preserveScroll: true });

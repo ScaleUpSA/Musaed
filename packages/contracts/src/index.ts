@@ -31,6 +31,7 @@ const runEnvelopeProperties = {
         eventsUrl: nonEmptyString(),
         auditUrl: nonEmptyString(),
         approvalsUrl: nonEmptyString(),
+        callbackToken: nonEmptyString(),
       },
       { additionalProperties: false },
     ),

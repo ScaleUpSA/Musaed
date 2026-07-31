@@ -37,6 +37,7 @@ describe("contracts", () => {
         eventsUrl: "https://example.test/events",
         auditUrl: "https://example.test/audit",
         approvalsUrl: "https://example.test/approvals",
+        callbackToken: "callback-token",
       },
       policyVersion: "policy-1",
       expiresAt: "2030-01-01T00:00:00.000Z",

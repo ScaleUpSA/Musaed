@@ -12,7 +12,7 @@ class Run extends Model
 
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'user_id', 'status', 'policy_version'];
+    protected $fillable = ['id', 'user_id', 'status', 'policy_version', 'callback_token_hash'];
 
     public function conversation(): BelongsTo
     {

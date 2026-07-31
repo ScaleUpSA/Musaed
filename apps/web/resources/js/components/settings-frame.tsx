@@ -16,7 +16,7 @@ export default function SettingsFrame({ children }: { children: React.ReactNode 
 
     return (
         <div className="bg-card border-border/80 flex min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-[0_16px_50px_-36px_rgba(17,81,180,0.55)]">
-            <ConversationRail conversations={[]} selectedId={null} onSelect={() => router.visit('/workspace')} onNew={() => router.visit('/workspace')} />
+            <ConversationRail conversations={[]} selectedId={null} onSelect={() => router.visit('/workspace')} onNew={() => router.visit('/workspace')} collapsed={false} onToggle={() => undefined} />
             <main className="min-w-0 flex-1 overflow-y-auto">
                 <div className="mx-auto w-full max-w-4xl px-6 py-8 sm:px-10 sm:py-10">
                     <div className="border-border/80 mb-9 border-b pb-7">

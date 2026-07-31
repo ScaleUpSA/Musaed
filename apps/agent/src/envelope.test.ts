@@ -41,6 +41,7 @@ const claims = {
     eventsUrl: "http://web/events",
     auditUrl: "http://web/audit",
     approvalsUrl: "http://web/approvals",
+    callbackToken: "callback-token",
   },
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",

@@ -63,13 +63,14 @@ class RunLifecycleTest extends TestCase
         ));
         $this->assertArrayNotHasKey('providerKey', $envelope);
         $this->assertArrayNotHasKey('apiKey', $envelope);
+        $callbackHeaders = ['X-Run-Callback-Token' => $envelope['callbacks']['callbackToken']];
 
         foreach ([
             ['type' => 'run.started', 'runId' => $run->id, 'at' => now()->toISOString()],
             ['type' => 'assistant.delta', 'runId' => $run->id, 'text' => 'A persisted answer.', 'at' => now()->toISOString()],
             ['type' => 'run.completed', 'runId' => $run->id, 'at' => now()->toISOString()],
         ] as $event) {
-            $this->postJson('/internal/runs/events', $event)->assertAccepted();
+            $this->withHeaders($callbackHeaders)->postJson('/internal/runs/events', $event)->assertAccepted();
         }
 
         $this->assertDatabaseHas('messages', [
@@ -78,6 +79,49 @@ class RunLifecycleTest extends TestCase
             'content' => 'A persisted answer.',
         ]);
         $this->assertSame('completed', $run->fresh()->status);
+    }
+
+    public function test_callback_credentials_are_run_scoped_and_expire_on_completion(): void
+    {
+        $user = User::factory()->create();
+        Http::fake(['http://agent.test/*' => Http::response(['status' => 'accepted'], 202)]);
+
+        $this->actingAs($user)->postJson('/runs', ['message' => 'First run'])->assertAccepted();
+        $firstRun = Run::firstOrFail();
+        $firstToken = Http::recorded()[0][0]->data()['callbacks']['callbackToken'];
+
+        $this->actingAs($user)->postJson('/runs', ['message' => 'Second run'])->assertAccepted();
+        $secondRun = Run::latest('created_at')->firstOrFail();
+        $secondToken = Http::recorded()[1][0]->data()['callbacks']['callbackToken'];
+
+        $event = ['type' => 'run.started', 'runId' => $firstRun->id, 'at' => now()->toISOString()];
+        $this->withHeader('X-Run-Callback-Token', $secondToken)
+            ->postJson('/internal/runs/events', $event)
+            ->assertUnauthorized()
+            ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
+        $this->withHeader('X-Run-Callback-Token', $firstToken)
+            ->postJson('/internal/runs/events', $event)
+            ->assertAccepted();
+
+        $this->withHeader('X-Run-Callback-Token', 'forged')
+            ->postJson('/internal/runs/events', [
+                ...$event,
+                'runId' => $secondRun->id,
+            ])
+            ->assertUnauthorized()
+            ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
+
+        $this->withHeader('X-Run-Callback-Token', $firstToken)
+            ->postJson('/internal/runs/events', [
+                'type' => 'run.completed',
+                'runId' => $firstRun->id,
+                'at' => now()->toISOString(),
+            ])
+            ->assertAccepted();
+        $this->withHeader('X-Run-Callback-Token', $firstToken)
+            ->postJson('/internal/runs/events', $event)
+            ->assertUnauthorized()
+            ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
     }
 
     public function test_user_cannot_read_another_users_conversation_events(): void

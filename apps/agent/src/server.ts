@@ -10,7 +10,11 @@ import { verifyRunEnvelope } from "./envelope.js";
 import { prepareRun } from "./run.js";
 import { executeRun } from "./run.js";
 
-const postEvent = async (url: string, event: Record<string, unknown>): Promise<void> => {
+const postEvent = async (
+  url: string,
+  callbackToken: string,
+  event: Record<string, unknown>,
+): Promise<void> => {
   const target = new URL(url);
   const request = target.protocol === "https:" ? httpsRequest : httpRequest;
 
@@ -21,6 +25,7 @@ const postEvent = async (url: string, event: Record<string, unknown>): Promise<v
         method: "POST",
         headers: {
           "content-type": "application/json",
+          "x-run-callback-token": callbackToken,
         },
       },
       (response) => {
@@ -63,7 +68,7 @@ export const buildServer = (config: AgentConfig) => {
     async (request, reply) => {
       const envelope = verifyRunEnvelope(request.body, config);
       const emit = async (...args: [Record<string, unknown>]): Promise<void> => {
-        await postEvent(envelope.callbacks.eventsUrl, args[0]);
+        await postEvent(envelope.callbacks.eventsUrl, envelope.callbacks.callbackToken, args[0]);
       };
 
       setImmediate(() => {

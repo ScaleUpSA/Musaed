@@ -131,6 +131,8 @@ return [
         'computer_empty' => 'A live computer view will appear here when a run uses one.',
         'panel_open' => 'Open right panel',
         'panel_close' => 'Close right panel',
+        'rail_collapse' => 'Collapse conversation rail',
+        'rail_expand' => 'Expand conversation rail',
         'no_selection_title' => 'No conversation selected',
         'no_selection_description' => 'Choose a conversation from the rail to view its messages.',
         'mock_prompt' => 'Summarize the rollout plan and call out the decisions we still need to make.',

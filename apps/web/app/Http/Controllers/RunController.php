@@ -18,6 +18,7 @@ class RunController extends Controller
     public function store(StoreRunRequest $request, ResolveRunPolicy $policy, RunEnvelopeSigner $signer): JsonResponse
     {
         $user = $request->user();
+        $callbackToken = bin2hex(random_bytes(32));
         $conversation = $request->filled('conversation_id')
             ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
             : $user->conversations()->create([
@@ -25,7 +26,7 @@ class RunController extends Controller
                 'title' => Str::limit($request->string('message')->toString(), 80, ''),
             ]);
 
-        $run = DB::transaction(function () use ($conversation, $user, $request, $policy): Run {
+        $run = DB::transaction(function () use ($conversation, $user, $request, $policy, $callbackToken): Run {
             $conversation->messages()->create([
                 'role' => 'user',
                 'content' => $request->string('message')->toString(),
@@ -37,6 +38,7 @@ class RunController extends Controller
                 'user_id' => $user->id,
                 'status' => 'queued',
                 'policy_version' => $resolved['policyVersion'],
+                'callback_token_hash' => hash('sha256', $callbackToken),
             ]);
 
             $run->setRelation('resolved_policy', collect($resolved));
@@ -64,6 +66,7 @@ class RunController extends Controller
                 'eventsUrl' => config('services.agent.events_url'),
                 'auditUrl' => config('services.agent.audit_url'),
                 'approvalsUrl' => config('services.agent.approvals_url'),
+                'callbackToken' => $callbackToken,
             ],
             'policyVersion' => $resolved['policyVersion'],
         ]);
@@ -103,12 +106,19 @@ class RunController extends Controller
     {
         $payload = $request->json()->all();
         if (! is_array($payload) || ! isset($payload['type'], $payload['runId'], $payload['at'])) {
-            return response()->json(['message' => 'Invalid event.'], 422);
+            return $this->callbackRejected();
         }
 
         $run = Run::find($payload['runId']);
-        if ($run === null) {
-            return response()->json(['message' => 'Invalid event.'], 404);
+        $callbackToken = $request->header('X-Run-Callback-Token');
+        if (
+            $run === null
+            || ! is_string($callbackToken)
+            || $run->callback_token_hash === null
+            || ! hash_equals($run->callback_token_hash, hash('sha256', $callbackToken))
+            || ! in_array($run->status, ['queued', 'running'], true)
+        ) {
+            return $this->callbackRejected();
         }
 
         $event = $run->events()->create([
@@ -128,6 +138,11 @@ class RunController extends Controller
         }
 
         return response()->json(['accepted' => true, 'event_id' => $event->id], 202);
+    }
+
+    private function callbackRejected(): JsonResponse
+    {
+        return response()->json(['code' => 'RUN_CALLBACK_REJECTED', 'message' => 'Run callback rejected.'], 401);
     }
 
     private function persistAssistantMessage(Run $run): void
