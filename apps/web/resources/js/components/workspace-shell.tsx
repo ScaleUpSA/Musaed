@@ -349,7 +349,7 @@ export default function WorkspaceShell({
                         setSelectedId(id);
                         router.visit(`/workspace?conversation_id=${encodeURIComponent(id)}`, { preserveScroll: true });
                     }}
-                    onNew={() => setSelectedId(null)}
+                    onNew={() => router.visit('/workspace')}
                 />
                 <ConversationView state={state} messages={messages} title={conversationTitle} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
