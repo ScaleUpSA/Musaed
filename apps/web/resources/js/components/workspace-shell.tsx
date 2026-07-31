@@ -13,11 +13,17 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import AppLogo from '@/components/app-logo';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { UserInfo } from '@/components/user-info';
+import { UserMenuContent } from '@/components/user-menu-content';
 import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
 import { shouldStickToBottom, type RunViewState } from '@/lib/workspace-events';
+import { type SharedData } from '@/types';
+import { Link, usePage } from '@inertiajs/react';
 
 type Conversation = {
     id: string;
@@ -31,34 +37,53 @@ const conversation: Conversation = {
     preview: 'workspace.conversation_preview',
 };
 
-function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
+export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
     const t = useTranslations();
+    const { auth } = usePage<SharedData>().props;
 
     return (
-        <aside className="bg-muted/20 flex min-h-0 flex-col border-e">
-            <div className="flex items-center justify-between gap-3 border-b px-4 py-3">
-                <h2 className="text-sm font-semibold">{t('workspace.conversations')}</h2>
-                <Button variant="ghost" size="icon" className="size-8" onClick={onNew} aria-label={t('workspace.new_conversation')}>
-                    <Plus />
+        <aside className="bg-sidebar border-border/80 flex min-h-0 flex-col border-e">
+            <div className="border-border/80 flex items-center justify-between gap-3 border-b px-5 py-5">
+                <Link href="/workspace" className="flex min-w-0 items-center">
+                    <AppLogo />
+                </Link>
+                <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onNew} aria-label={t('workspace.new_conversation')}>
+                    <Plus className="size-4" />
                 </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto p-2">
+            <div className="px-4 pt-5 pb-2">
+                <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold tracking-[0.16em] uppercase">{t('workspace.conversations')}</p>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-3">
                 <button
                     type="button"
                     className={cn(
-                        'hover:bg-accent flex w-full items-start gap-3 rounded-lg p-3 text-start transition-colors',
-                        selectedId === conversation.id && 'bg-accent',
+                        'group flex w-full items-start gap-3 rounded-xl p-3 text-start transition-colors',
+                        selectedId === conversation.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/70',
                     )}
                     onClick={() => onSelect(conversation.id)}
                 >
-                    <div className="bg-primary text-primary-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full">
+                    <div className="bg-primary text-primary-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
                         <CircleDot className="size-4" />
                     </div>
                     <span className="min-w-0">
                         <span className="block truncate text-sm font-medium">{t(conversation.title)}</span>
-                        <span className="text-muted-foreground block truncate text-xs">{t(conversation.preview)}</span>
+                        <span className="text-muted-foreground mt-0.5 block truncate text-xs">{t(conversation.preview)}</span>
                     </span>
                 </button>
+            </div>
+            <div className="border-border/80 border-t p-3">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-3 text-start">
+                            <UserInfo user={auth.user} />
+                            <span className="text-muted-foreground ms-auto">•••</span>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64 rounded-xl" align="end" side="top">
+                        <UserMenuContent user={auth.user} />
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
         </aside>
     );
@@ -295,10 +320,10 @@ export default function WorkspaceShell({
     const [panelOpen, setPanelOpen] = useState(true);
 
     return (
-        <div className="flex min-h-[calc(100svh-4rem)] flex-1 flex-col overflow-hidden p-3">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div
                 className={cn(
-                    'bg-background grid min-h-0 flex-1 overflow-hidden rounded-xl border',
+                    'bg-card border-border/80 grid min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-[0_16px_50px_-36px_rgba(17,81,180,0.55)]',
                     panelOpen
                         ? 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_minmax(15rem,20rem)]'
                         : 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_auto]',

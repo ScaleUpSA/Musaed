@@ -1,8 +1,7 @@
 import InputError from '@/components/input-error';
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
+import SettingsFrame from '@/components/settings-frame';
 import { useTranslations } from '@/hooks/use-translations';
-import { type BreadcrumbItem } from '@/types';
+import AppLayout from '@/layouts/app-layout';
 import { Transition } from '@headlessui/react';
 import { Head, useForm } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
@@ -11,13 +10,6 @@ import HeadingSmall from '@/components/heading-small';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'settings.password_settings',
-        href: '/settings/password',
-    },
-];
 
 export default function Password() {
     const t = useTranslations();
@@ -51,10 +43,10 @@ export default function Password() {
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={t('settings.password_settings')} />
 
-            <SettingsLayout>
+            <SettingsFrame>
                 <div className="space-y-6">
                     <HeadingSmall title={t('settings.update_password')} description={t('settings.update_password_description')} />
 
@@ -119,12 +111,12 @@ export default function Password() {
                                 leave="transition ease-in-out"
                                 leaveTo="opacity-0"
                             >
-                                <p className="text-sm text-neutral-600">{t('common.saved')}</p>
+                                <p className="text-muted-foreground text-sm">{t('common.saved')}</p>
                             </Transition>
                         </div>
                     </form>
                 </div>
-            </SettingsLayout>
+            </SettingsFrame>
         </AppLayout>
     );
 }

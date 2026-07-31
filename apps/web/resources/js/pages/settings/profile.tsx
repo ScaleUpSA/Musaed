@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -6,19 +6,12 @@ import { FormEventHandler } from 'react';
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
+import SettingsFrame from '@/components/settings-frame';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
 import { useTranslations } from '@/hooks/use-translations';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'settings.profile_settings',
-        href: '/settings/profile',
-    },
-];
+import AppLayout from '@/layouts/app-layout';
 
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
@@ -36,10 +29,10 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout>
             <Head title={t('settings.profile_settings')} />
 
-            <SettingsLayout>
+            <SettingsFrame>
                 <div className="space-y-6">
                     <HeadingSmall title={t('settings.profile_information')} description={t('settings.profile_information_description')} />
 
@@ -80,20 +73,20 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
                         {mustVerifyEmail && auth.user.email_verified_at === null && (
                             <div>
-                                <p className="mt-2 text-sm text-neutral-800">
+                                <p className="text-muted-foreground mt-2 text-sm leading-7">
                                     {t('settings.unverified_email')}
                                     <Link
                                         href={route('verification.send')}
                                         method="post"
                                         as="button"
-                                        className="rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
+                                        className="text-foreground hover:text-primary rounded-md text-sm underline underline-offset-4 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                                     >
                                         {t('settings.resend_verification')}
                                     </Link>
                                 </p>
 
                                 {status === 'verification-link-sent' && (
-                                    <div className="mt-2 text-sm font-medium text-green-600">
+                                    <div className="mt-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                                         {t('settings.verification_sent')}
                                     </div>
                                 )}
@@ -110,14 +103,14 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 leave="transition ease-in-out"
                                 leaveTo="opacity-0"
                             >
-                                <p className="text-sm text-neutral-600">{t('common.saved')}</p>
+                                <p className="text-muted-foreground text-sm">{t('common.saved')}</p>
                             </Transition>
                         </div>
                     </form>
                 </div>
 
                 <DeleteUser />
-            </SettingsLayout>
+            </SettingsFrame>
         </AppLayout>
     );
 }

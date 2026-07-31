@@ -33,6 +33,9 @@ return [
         'arabic' => 'العربية',
     ],
     'auth' => [
+        'eyebrow' => 'Enterprise AI workspace',
+        'brand_message' => 'A calm place to think, decide and get work done.',
+        'controlled_workspace' => 'Governed by your organization. Built for your team.',
         'login' => 'Log in',
         'login_title' => 'Log in to your account',
         'login_description' => 'Enter your email and password below to log in',
@@ -62,6 +65,7 @@ return [
         'account_created' => 'Account created successfully.',
     ],
     'settings' => [
+        'eyebrow' => 'Account',
         'settings' => 'Settings',
         'description' => 'Manage your profile and account settings',
         'profile' => 'Profile',
