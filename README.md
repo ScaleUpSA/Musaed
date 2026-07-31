@@ -23,6 +23,17 @@ That gap is the product. Musaed is not another chat UI; the chat surface is the 
 | **Computer use** | Disposable browser sandboxes with live view and human takeover |
 | **Governance** | One provider key, held centrally. Per-group model and tool policy. Complete audit trail. |
 
+## What it looks like today
+
+Honest answer: like a signed-in shell. Authentication, settings and the application layout are in place; the workspace itself — chat, memory, artifacts, sandboxes — is Phase 1 and not built yet. These are the real screens, not mockups.
+
+| | |
+|---|---|
+| ![Sign-in](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+| Sign in | The workspace shell, awaiting Phase 1 |
+
+![Profile settings](docs/screenshots/settings-profile.png)
+
 ## Architecture in one picture
 
 ```mermaid
