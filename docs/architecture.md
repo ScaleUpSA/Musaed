@@ -19,36 +19,95 @@ Four distinctions follow, and confusing any two of them is how governed AI syste
 
 ## Components
 
-```
-┌────────────────────────────────────────────────────────────┐
-│  Browser — React + Inertia                                 │
-│  chat · artifacts · live sandbox view (noVNC) · admin UI    │
-└───────────────┬────────────────────────────────────────────┘
-                │ Inertia (page state) + SSE/WebSocket (run events)
-┌───────────────▼────────────────────────────────────────────┐
-│  apps/web — Laravel control plane          SYSTEM OF RECORD │
-│  auth · users/groups · policy · model & MCP catalogue       │
-│  conversations · memory · artifacts · audit · budgets       │
-│  provider credential custody                                │
-└───────────────┬────────────────────────────────────────────┘
-                │ signed, short-lived run envelope
-┌───────────────▼────────────────────────────────────────────┐
-│  apps/agent — Node 24 + pi SDK             EXECUTOR ONLY    │
-│  session construction · tool loop · streaming · cancellation │
-│  policy extension · audit extension · container routing      │
-└───┬──────────────┬──────────────────┬──────────────────────┘
-    │              │                  │
-┌───▼────────┐ ┌───▼──────────┐ ┌─────▼──────────────────────┐
-│  LiteLLM   │ │ MCP gateway  │ │  apps/broker               │
-│  model     │ │ admin-       │ │  rootless Podman lifecycle │
-│  egress    │ │ provisioned  │ │  create/exec/copy/stop/GC  │
-└───┬────────┘ └───┬──────────┘ └─────┬──────────────────────┘
-    │              │                  │
- providers   isolated MCP      disposable sandboxes
-                servers        (browser · artifacts)
+```mermaid
+flowchart TB
+    subgraph client["Browser"]
+        ui["React + Inertia<br/>chat · artifacts · admin UI<br/>live sandbox view via noVNC"]
+    end
 
-Cross-cutting: PostgreSQL + pgvector · Redis/Horizon · OpenTelemetry
+    subgraph control["apps/web — Laravel control plane · SYSTEM OF RECORD"]
+        web["auth · users &amp; groups · policy<br/>model &amp; MCP catalogue · conversations<br/>memory · artifacts · audit · budgets<br/><b>provider credential custody</b>"]
+    end
+
+    subgraph runtime["apps/agent — Node 24 + pi SDK · EXECUTOR ONLY"]
+        agent["session construction · tool loop<br/>streaming · cancellation<br/>policy · audit · container-routing extensions"]
+    end
+
+    subgraph egress["Mediated egress and isolation"]
+        litellm["LiteLLM<br/>model gateway"]
+        mcpgw["MCP gateway<br/>admin-provisioned"]
+        broker["apps/broker<br/>rootless Podman lifecycle<br/>create · exec · copy · stop · GC"]
+    end
+
+    subgraph outside["Outside the trust boundary"]
+        providers["Model providers"]
+        mcpsrv["Isolated MCP servers"]
+        sandbox["Disposable sandboxes<br/>browser · artifacts"]
+    end
+
+    data[("PostgreSQL + pgvector<br/>Redis / Horizon")]
+
+    ui -->|"Inertia page state"| web
+    web -->|"SSE / WebSocket run events"| ui
+    web ==>|"signed, short-lived<br/>run envelope"| agent
+    agent -->|"events · audit · approval requests"| web
+    web --- data
+
+    agent --> litellm --> providers
+    agent --> mcpgw --> mcpsrv
+    agent -->|"opaque handle, brokered exec<br/><b>never a container socket</b>"| broker
+    broker --> sandbox
+    ui -.->|"noVNC live view &amp; takeover"| sandbox
+
+    classDef authority fill:#0b4f8a,stroke:#062f52,color:#fff
+    classDef executor fill:#1151b4,stroke:#0b3577,color:#fff
+    classDef untrusted fill:#8a3a0b,stroke:#5c2607,color:#fff
+    class web authority
+    class agent executor
+    class providers,mcpsrv,sandbox untrusted
 ```
+
+### The run lifecycle
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant U as Employee
+    participant L as Laravel control plane
+    participant A as Agent runtime
+    participant G as LiteLLM
+    participant B as Broker
+    participant S as Sandbox
+
+    U->>L: send a message
+    L->>L: resolve group policy,<br/>mint per-run virtual key
+    L->>A: signed run envelope<br/>(models · tools · sandbox · expiry)
+    A->>A: build isolated pi session<br/>in-memory credentials, per-run cwd/agentDir
+    A->>G: completion request (virtual key)
+    G->>A: streamed tokens
+    A-->>L: events + audit
+    L-->>U: streamed response
+
+    A->>A: policy hook checks tool call
+    alt outside the envelope
+        A-->>L: blocked, audited
+    else needs human approval
+        A->>L: approval request
+        L->>U: approve or deny
+        U-->>L: decision
+        L-->>A: decision
+    else permitted
+        A->>B: brokered exec
+        B->>S: run in disposable container
+        S-->>B: result / artifact
+        B-->>A: result
+    end
+
+    A->>L: run complete, tokens and cost attributed
+    B->>S: teardown on completion, cancellation or idle expiry
+```
+
+Cross-cutting: PostgreSQL + pgvector · Redis/Horizon · OpenTelemetry.
 
 ## The run envelope
 

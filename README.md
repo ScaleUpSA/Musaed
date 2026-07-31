@@ -25,15 +25,25 @@ That gap is the product. Musaed is not another chat UI; the chat surface is the 
 
 ## Architecture in one picture
 
-```
-React (Inertia)
-     │
-Laravel control plane ── Postgres + pgvector · Redis
-     │  signed, short-lived run envelope
-Node agent runtime (pi SDK)
-     ├── LiteLLM ─────────── model providers
-     ├── MCP gateway ─────── admin-provisioned servers
-     └── sandbox broker ──── rootless Podman containers
+```mermaid
+flowchart LR
+    ui["React + Inertia"]
+    web["Laravel control plane<br/><i>owns authority</i>"]
+    agent["Node agent runtime<br/>pi SDK · <i>executes only</i>"]
+    db[("Postgres + pgvector<br/>Redis")]
+    litellm["LiteLLM"]
+    mcp["MCP gateway"]
+    broker["Sandbox broker"]
+    providers["Model providers"]
+    servers["Admin-provisioned<br/>MCP servers"]
+    containers["Disposable rootless<br/>Podman containers"]
+
+    ui <--> web
+    web --- db
+    web ==>|"signed, short-lived run envelope"| agent
+    agent --> litellm --> providers
+    agent --> mcp --> servers
+    agent --> broker --> containers
 ```
 
 Two rules explain most of the design:
