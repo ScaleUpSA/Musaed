@@ -39,7 +39,7 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
         <aside className="bg-surface-subtle border-border/80 flex min-h-0 flex-col border-e">
             <div className={cn('border-border/80 flex items-center gap-2 border-b py-5', collapsed ? 'flex-col px-2' : 'justify-between px-4')}>
                 <Link href="/workspace" className={cn('flex min-w-0 items-center', collapsed && 'justify-center')}>
-                    <AppLogo />
+                    <AppLogo collapsed={collapsed} />
                 </Link>
                 <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onNew} aria-label={t('workspace.new_conversation')}>
                     <Plus className="size-4" />
@@ -67,8 +67,8 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
                         <CircleDot className="size-4" />
                     </div>
                     {!collapsed && <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</span>
-                        {conversation.preview && <span className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</span>}
+                        <span dir="auto" className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</span>
+                        {conversation.preview && <span dir="auto" className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</span>}
                     </span>}
                 </button>)}
             </div>
@@ -127,7 +127,7 @@ function ToolActivity({ state }: { state: RunViewState }) {
                         ) : (
                             <CheckCircle2 className="text-muted-foreground size-3.5" />
                         )}
-                        <span className="truncate font-mono text-xs">{tool.name}</span>
+                        <span dir="auto" className="truncate font-mono text-xs">{tool.name}</span>
                     </span>
                     <span className="text-muted-foreground text-xs">
                         {t(
@@ -179,7 +179,7 @@ function ConversationView({ state, messages, title, onSubmit }: { state: RunView
         <section className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
                 <div className="flex items-center gap-3">
-                    <h1 className="font-semibold">{title ?? t('workspace.untitled_conversation')}</h1>
+                    <h1 dir="auto" className="font-semibold">{title ?? t('workspace.untitled_conversation')}</h1>
                     <RunStatus state={state} />
                 </div>
                 <span title={t('workspace.cancel_unavailable')}>
@@ -194,7 +194,7 @@ function ConversationView({ state, messages, title, onSubmit }: { state: RunView
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
                     {messages.filter((message) => message.role === 'user').map((message, index) => (
                         <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
-                            <div className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
+                            <div dir="auto" className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
                                 {message.content}
                             </div>
                         </div>
@@ -206,7 +206,7 @@ function ConversationView({ state, messages, title, onSubmit }: { state: RunView
                                 <span className="bg-primary size-1.5 rounded-full" />
                                 {t('workspace.assistant')}
                             </div>
-                            <div className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
+                            <div dir="auto" className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
                                 {state.assistantText}
                             </div>
                         </div>
@@ -261,8 +261,8 @@ function ArtifactPanel({ open, onToggle }: { open: boolean; onToggle: () => void
 
     if (!open) {
         return (
-            <aside className="bg-muted/20 flex items-start justify-center border-s p-3">
-                <Button variant="outline" size="icon" onClick={onToggle} aria-label={t('workspace.panel_open')}>
+            <aside className="bg-card flex items-start justify-start border-s p-0">
+                <Button variant="outline" size="icon" className="rounded-s-none border-s-0" onClick={onToggle} aria-label={t('workspace.panel_open')}>
                     <PanelRightOpen className="rtl:rotate-180" />
                 </Button>
             </aside>
