@@ -120,25 +120,16 @@ export async function prepareRun(
   });
   await resourceLoader.reload();
 
-  if (envelope.allowedTools.length === 0) {
-    await createAgentSession({
-      cwd: workingDirectory,
-      agentDir: agentDirectory,
-      modelRuntime,
-      settingsManager: SettingsManager.inMemory(),
-      resourceLoader,
-      noTools: "all",
-    });
-  } else {
-    // Until the policy hook lands, a non-empty allow-list is advisory only.
-    await createAgentSession({
-      cwd: workingDirectory,
-      agentDir: agentDirectory,
-      modelRuntime,
-      settingsManager: SettingsManager.inMemory(),
-      resourceLoader,
-    });
-  }
+  // Until the policy hook lands, a non-empty allow-list is advisory only.
+  const noTools = envelope.allowedTools.length === 0 ? "all" : undefined;
+  await createAgentSession({
+    cwd: workingDirectory,
+    agentDir: agentDirectory,
+    modelRuntime,
+    settingsManager: SettingsManager.inMemory(),
+    resourceLoader,
+    ...(noTools === undefined ? {} : { noTools }),
+  });
 
   return {
     runId: envelope.runId,

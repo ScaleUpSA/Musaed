@@ -41,14 +41,7 @@ export const RunEnvelopeSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export type RunEnvelope = Omit<
-  Static<typeof RunEnvelopeSchema>,
-  "allowedModels" | "allowedTools" | "approvalRequiredTools"
-> & {
-  allowedModels: readonly string[];
-  allowedTools: readonly string[];
-  approvalRequiredTools: readonly string[];
-};
+export type RunEnvelope = Static<typeof RunEnvelopeSchema>;
 
 export const SandboxRequestSchema = Type.Object(
   {

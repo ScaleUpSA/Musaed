@@ -34,7 +34,7 @@ const envelope = {
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
   signature: "test-signature",
-} as const;
+};
 
 const createConfig = (agentRunRoot: string): AgentConfig => ({
   port: 3001,

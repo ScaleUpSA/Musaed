@@ -30,9 +30,7 @@ export const loadAgentConfig = (env: NodeJS.ProcessEnv): AgentConfig => {
   }
 
   const litellmUrl = required(env, "LITELLM_URL");
-  try {
-    new URL(litellmUrl);
-  } catch {
+  if (!URL.canParse(litellmUrl)) {
     throw new Error("LITELLM_URL must be a valid URL");
   }
 
