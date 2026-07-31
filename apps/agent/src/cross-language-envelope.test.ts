@@ -21,9 +21,14 @@ const claims = {
   allowedTools: ["read"],
   approvalRequiredTools: [],
   litellmVirtualKey: "sk-virtual-run",
+  "10": "ten",
+  "9": "nine",
+  "\u{10000}": "astral-key",
+  "\u{e000}": "private-use-key",
+  unicodeProbe: "😀\u0001",
   sandbox: {
     enabled: false,
-    cpuLimit: 1.5,
+    cpuLimit: 2,
     memoryLimitMb: 1024,
     pidsLimit: 64,
   },
@@ -45,9 +50,10 @@ it("verifies a Laravel-signed envelope in Node", () => {
     .export({ format: "der", type: "spki" })
     .subarray(-32);
   const privateKey = Buffer.concat([privateSeed, publicKey]).toString("base64");
+  const claimsJson = JSON.stringify(claims).replace('"cpuLimit":2', '"cpuLimit":2.0');
   const result = spawnSync("php", [
     "apps/web/tests/Fixtures/sign-envelope.php",
-    JSON.stringify(claims),
+    claimsJson,
     privateKey,
   ], {
     cwd: resolve(process.cwd(), "../.."),

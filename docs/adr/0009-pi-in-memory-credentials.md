@@ -37,11 +37,13 @@ the private key is control-plane custody only and is never sent to the runtime.
 
 The signed bytes are canonical JSON of the envelope without `signature`:
 
-- object keys are sorted lexicographically by their UTF-8 key bytes at every
-  object level;
+- object keys are sorted lexicographically by their UTF-8 bytes at every
+  object level (not by locale or numeric comparison);
 - arrays retain their order;
 - JSON is compact UTF-8 with Unicode and `/` left unescaped;
-- strings, booleans, null and finite numbers use their standard JSON encoding.
+- strings, booleans and null use their standard JSON encoding;
+- numbers must be finite integers, and are encoded as their decimal JSON
+  representation without a fractional suffix (`2.0` is encoded as `2`).
 
 The same canonicalizer is implemented in PHP and TypeScript, and the
 cross-language test verifies Laravel output with Node's Ed25519 verifier.

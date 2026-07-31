@@ -19,8 +19,8 @@ const runEnvelopeProperties = {
     sandbox: Type.Object(
       {
         enabled: Type.Boolean(),
-        cpuLimit: Type.Number({ exclusiveMinimum: 0 }),
-        memoryLimitMb: Type.Number({ exclusiveMinimum: 0 }),
+        cpuLimit: Type.Integer({ exclusiveMinimum: 0 }),
+        memoryLimitMb: Type.Integer({ exclusiveMinimum: 0 }),
         pidsLimit: Type.Integer({ exclusiveMinimum: 0 }),
       },
       { additionalProperties: false },
@@ -49,14 +49,28 @@ export const RunEnvelopeRequestSchema = Type.Object(
 
 export type RunEnvelope = Static<typeof RunEnvelopeSchema>;
 
+const compareUtf8Bytes = (left: string, right: string): number => {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  const length = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < length; index += 1) {
+    if (leftBytes[index] !== rightBytes[index]) {
+      return leftBytes[index] - rightBytes[index];
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
+};
+
 export const canonicalizeJson = (value: unknown): string => {
   if (value === null || typeof value === "string" || typeof value === "boolean") {
     return JSON.stringify(value);
   }
 
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new TypeError("Canonical JSON cannot contain non-finite numbers");
+    if (!Number.isInteger(value)) {
+      throw new TypeError("Canonical JSON can contain only integer numbers");
     }
 
     return JSON.stringify(value);
@@ -68,7 +82,7 @@ export const canonicalizeJson = (value: unknown): string => {
 
   if (typeof value === "object") {
     const entries = Object.entries(value as Record<string, unknown>)
-      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      .sort(([left], [right]) => compareUtf8Bytes(left, right))
       .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalizeJson(entry)}`);
 
     return `{${entries.join(",")}}`;

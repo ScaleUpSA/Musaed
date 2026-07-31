@@ -67,8 +67,10 @@ signature before reading paths, registering models or constructing a pi
 session.
 
 The signature covers canonical JSON of every envelope field except
-`signature`: object keys are sorted lexicographically at every level, arrays
-keep their order, and the compact UTF-8 JSON leaves Unicode and `/` unescaped.
+`signature`: object keys are sorted by UTF-8 bytes at every level (not locale or
+numeric comparison), arrays keep their order, and the compact UTF-8 JSON leaves
+Unicode and `/` unescaped. Numeric claims are finite integers encoded without a
+fractional suffix, so `2.0` is canonicalised as `2`.
 The signature is base64url without padding. Envelopes use a five-minute
 configured lifetime and the runtime permits only an explicit 30-second clock
 skew before rejecting them.

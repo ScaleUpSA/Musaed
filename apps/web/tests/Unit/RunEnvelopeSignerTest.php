@@ -47,4 +47,12 @@ class RunEnvelopeSignerTest extends TestCase
             CanonicalJson::encode(['b' => [2, 'x'], 'a' => ['z' => true, 'a' => 'مساعد']]),
         );
     }
+
+    public function test_canonical_json_uses_bytewise_key_order_and_integer_number_encoding(): void
+    {
+        $this->assertSame(
+            '{"10":"ten","9":"nine","value":2}',
+            CanonicalJson::encode(['10' => 'ten', '9' => 'nine', 'value' => 2.0]),
+        );
+    }
 }
