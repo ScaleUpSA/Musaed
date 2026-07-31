@@ -53,3 +53,7 @@ curl --fail http://localhost:8000/register
 The web entrypoint runs `php artisan migrate --force` and
 `php artisan config:cache` on every start. It refuses to start when `APP_KEY`
 is unset; never generate a new production key during container startup.
+
+PostgreSQL creates a separate `litellm` database during first initialization.
+LiteLLM uses that database exclusively; do not point it at the Laravel
+application database or remove the `docker/postgres-init` mount.
