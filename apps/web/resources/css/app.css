@@ -48,14 +48,7 @@
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
 
-    --color-sidebar: var(--surface-subtle);
-    --color-sidebar-foreground: var(--foreground);
-    --color-sidebar-primary: var(--primary);
-    --color-sidebar-primary-foreground: var(--primary-foreground);
-    --color-sidebar-accent: var(--accent);
-    --color-sidebar-accent-foreground: var(--accent-foreground);
-    --color-sidebar-border: var(--border);
-    --color-sidebar-ring: var(--ring);
+    --color-surface-subtle: var(--surface-subtle);
 }
 
 @font-face {

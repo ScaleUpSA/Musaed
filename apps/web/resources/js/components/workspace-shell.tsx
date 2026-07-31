@@ -42,7 +42,7 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
     const { auth } = usePage<SharedData>().props;
 
     return (
-        <aside className="bg-sidebar border-border/80 flex min-h-0 flex-col border-e">
+        <aside className="bg-surface-subtle border-border/80 flex min-h-0 flex-col border-e">
             <div className="border-border/80 flex items-center justify-between gap-3 border-b px-5 py-5">
                 <Link href="/workspace" className="flex min-w-0 items-center">
                     <AppLogo />
