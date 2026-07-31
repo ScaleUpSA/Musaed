@@ -45,7 +45,7 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
                     <Plus className="size-4" />
                 </Button>
                 <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onToggle} aria-label={t(collapsed ? 'workspace.rail_expand' : 'workspace.rail_collapse')}>
-                    <ChevronLeft className={cn('size-4', collapsed && 'rtl:rotate-180')} />
+                    <ChevronLeft className="size-4 rtl:rotate-180" />
                 </Button>
             </div>
             {!collapsed && <div className="px-4 pt-5 pb-2">
