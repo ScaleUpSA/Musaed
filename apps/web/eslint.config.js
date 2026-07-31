@@ -4,6 +4,7 @@ import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import globals from 'globals';
 import typescript from 'typescript-eslint';
+import logicalCss from './eslint-rules/no-physical-padding.js';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [
@@ -35,6 +36,14 @@ export default [
         rules: {
             'react-hooks/rules-of-hooks': 'error',
             'react-hooks/exhaustive-deps': 'warn',
+        },
+    },
+    {
+        plugins: {
+            'logical-css': logicalCss,
+        },
+        rules: {
+            'logical-css/no-physical-padding': 'error',
         },
     },
     {

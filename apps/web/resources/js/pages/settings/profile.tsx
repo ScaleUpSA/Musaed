@@ -1,4 +1,4 @@
-import { type BreadcrumbItem, type SharedData } from '@/types';
+import { type SharedData } from '@/types';
 import { Transition } from '@headlessui/react';
 import { Head, Link, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
@@ -6,21 +6,16 @@ import { FormEventHandler } from 'react';
 import DeleteUser from '@/components/delete-user';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
+import SettingsFrame from '@/components/settings-frame';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Profile settings',
-        href: '/settings/profile',
-    },
-];
 
 export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: boolean; status?: string }) {
     const { auth } = usePage<SharedData>().props;
+    const t = useTranslations();
 
     const { data, setData, patch, errors, processing, recentlySuccessful } = useForm({
         name: auth.user.name,
@@ -34,32 +29,32 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
     };
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Profile settings" />
+        <AppLayout>
+            <Head title={t('settings.profile_settings')} />
 
-            <SettingsLayout>
+            <SettingsFrame>
                 <div className="space-y-6">
-                    <HeadingSmall title="Profile information" description="Update your name and email address" />
+                    <HeadingSmall title={t('settings.profile_information')} description={t('settings.profile_information_description')} />
 
                     <form onSubmit={submit} className="space-y-6">
                         <div className="grid gap-2">
-                            <Label htmlFor="name">Name</Label>
+                            <Label htmlFor="name">{t('common.name')}</Label>
 
                             <Input
                                 id="name"
-                                className="mt-1 block w-full"
+                                className="mt-1 block w-full text-start"
                                 value={data.name}
                                 onChange={(e) => setData('name', e.target.value)}
                                 required
                                 autoComplete="name"
-                                placeholder="Full name"
+                                placeholder={t('common.full_name')}
                             />
 
                             <InputError className="mt-2" message={errors.name} />
                         </div>
 
                         <div className="grid gap-2">
-                            <Label htmlFor="email">Email address</Label>
+                            <Label htmlFor="email">{t('common.email')}</Label>
 
                             <Input
                                 id="email"
@@ -69,7 +64,8 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 onChange={(e) => setData('email', e.target.value)}
                                 required
                                 autoComplete="username"
-                                placeholder="Email address"
+                                dir="ltr"
+                                placeholder={t('common.email')}
                             />
 
                             <InputError className="mt-2" message={errors.email} />
@@ -77,28 +73,28 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
 
                         {mustVerifyEmail && auth.user.email_verified_at === null && (
                             <div>
-                                <p className="mt-2 text-sm text-neutral-800">
-                                    Your email address is unverified.
+                                <p className="text-muted-foreground mt-2 text-sm leading-7">
+                                    {t('settings.unverified_email')}
                                     <Link
                                         href={route('verification.send')}
                                         method="post"
                                         as="button"
-                                        className="rounded-md text-sm text-neutral-600 underline hover:text-neutral-900 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
+                                        className="text-foreground hover:text-primary rounded-md text-sm underline underline-offset-4 focus:ring-2 focus:ring-offset-2 focus:outline-hidden"
                                     >
-                                        Click here to re-send the verification email.
+                                        {t('settings.resend_verification')}
                                     </Link>
                                 </p>
 
                                 {status === 'verification-link-sent' && (
-                                    <div className="mt-2 text-sm font-medium text-green-600">
-                                        A new verification link has been sent to your email address.
+                                    <div className="mt-2 text-sm font-medium text-emerald-600 dark:text-emerald-400">
+                                        {t('settings.verification_sent')}
                                     </div>
                                 )}
                             </div>
                         )}
 
                         <div className="flex items-center gap-4">
-                            <Button disabled={processing}>Save</Button>
+                            <Button disabled={processing}>{t('common.save')}</Button>
 
                             <Transition
                                 show={recentlySuccessful}
@@ -107,14 +103,14 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                                 leave="transition ease-in-out"
                                 leaveTo="opacity-0"
                             >
-                                <p className="text-sm text-neutral-600">Saved</p>
+                                <p className="text-muted-foreground text-sm">{t('common.saved')}</p>
                             </Transition>
                         </div>
                     </form>
                 </div>
 
                 <DeleteUser />
-            </SettingsLayout>
+            </SettingsFrame>
         </AppLayout>
     );
 }
