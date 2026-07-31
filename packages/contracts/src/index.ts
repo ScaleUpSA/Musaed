@@ -43,7 +43,7 @@ export const RunEnvelopeSchema = Type.Object(
 );
 
 export const RunEnvelopeRequestSchema = Type.Object(
-  { ...runEnvelopeProperties, signature: Type.Optional(nonEmptyString()) },
+  { ...runEnvelopeProperties, signature: Type.Optional(Type.String()) },
   { additionalProperties: false },
 );
 
