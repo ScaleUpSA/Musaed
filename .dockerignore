@@ -4,3 +4,4 @@
 **/public/build
 .git
 .env
+**/.env

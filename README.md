@@ -53,8 +53,14 @@ Rationale in [`docs/adr/`](docs/adr/).
 
 ```bash
 cp .env.example .env
-docker compose -f docker/compose.yml up
+docker compose --env-file .env -f docker/compose.yml up -d
 ```
+
+The web container runs the database migrations and caches Laravel's
+configuration during startup. Visit <http://localhost:8000/register> to create
+the first user. The development `APP_KEY` in `.env.example` is only a
+convenience for local evaluation; generate a unique persistent key for
+production and keep it unchanged across restarts.
 
 Full setup, configuration surface and upgrade notes: `docs/` (in progress).
 

@@ -39,3 +39,17 @@ The web application uses Laravel 12 rather than Laravel 13 because the
 official `laravel/react-starter-kit` version used by this scaffold requires
 `laravel/framework ^12.0`. Revisit the upgrade when the starter kit supports
 Laravel 13.
+
+## Clean checkout verification
+
+From a fresh clone, run:
+
+```sh
+cp .env.example .env
+docker compose --env-file .env -f docker/compose.yml up -d --build
+curl --fail http://localhost:8000/register
+```
+
+The web entrypoint runs `php artisan migrate --force` and
+`php artisan config:cache` on every start. It refuses to start when `APP_KEY`
+is unset; never generate a new production key during container startup.
