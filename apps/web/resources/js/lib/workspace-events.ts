@@ -68,10 +68,7 @@ export function shouldStickToBottom(
 export function createMockAgentEventSource(runId: string, locale: Locale): AgentEventSource {
     const assistantText =
         locale === 'ar'
-            ? [
-                  'سأراجع ملاحظات المشروع الأخيرة وألخّص القرارات الرئيسية. ',
-                  'الفريق متفق على خطة الإطلاق، مع توثيق الموافقات والمسؤوليات بوضوح.',
-              ]
+            ? ['سأراجع ملاحظات المشروع الأخيرة وألخّص القرارات الرئيسية. ', 'الفريق متفق على خطة الإطلاق، مع توثيق الموافقات والمسؤوليات بوضوح.']
             : [
                   'I’ll review the latest project notes and summarize the key decisions. ',
                   'The team is aligned on the rollout plan, with approvals and ownership clearly recorded.',

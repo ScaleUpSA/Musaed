@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 
 import { useTranslations } from '@/hooks/use-translations';
 import { createMockAgentEventSource, initialRunViewState, reduceAgentEvent, type RunViewState } from '@/lib/workspace-events';
-import { usePage } from '@inertiajs/react';
 import type { SharedData } from '@/types';
+import { usePage } from '@inertiajs/react';
 
 export function useMockAgentRun() {
     const t = useTranslations();
