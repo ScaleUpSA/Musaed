@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, symlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -57,21 +57,90 @@ describe("agent service", () => {
     await app.close();
   });
 
+  it("rejects additional properties and type coercion", async () => {
+    const app = buildServer();
+
+    const extraPropertyResponse = await app.inject({
+      method: "POST",
+      url: "/runs/prepare",
+      payload: { ...envelope, unexpected: true },
+    });
+    const numericStringResponse = await app.inject({
+      method: "POST",
+      url: "/runs/prepare",
+      payload: { ...envelope, sandbox: { ...envelope.sandbox, cpuLimit: "1" } },
+    });
+    const stringArrayResponse = await app.inject({
+      method: "POST",
+      url: "/runs/prepare",
+      payload: { ...envelope, allowedModels: "gpt-4o-mini" },
+    });
+
+    expect(extraPropertyResponse.statusCode).toBe(400);
+    expect(numericStringResponse.statusCode).toBe(400);
+    expect(stringArrayResponse.statusCode).toBe(400);
+    await app.close();
+  });
+
   it("does not read or create the home pi directory", async () => {
     const home = mkdtempSync(join(tmpdir(), "musaed-home-"));
+    const root = mkdtempSync(join(tmpdir(), "musaed-run-root-"));
     const previousHome = process.env.HOME;
+    const previousRunRoot = process.env.AGENT_RUN_ROOT;
     process.env.HOME = home;
+    process.env.AGENT_RUN_ROOT = root;
 
     try {
       await prepareRun({
         ...envelope,
-        workingDirectory: mkdtempSync(join(tmpdir(), "musaed-workspace-")),
-        agentDirectory: mkdtempSync(join(tmpdir(), "musaed-agent-")),
+        workingDirectory: join(root, "workspace"),
+        agentDirectory: join(root, "agent"),
       });
 
       expect(existsSync(join(home, ".pi"))).toBe(false);
     } finally {
       process.env.HOME = previousHome;
+      process.env.AGENT_RUN_ROOT = previousRunRoot;
+    }
+  });
+
+  it("rejects paths outside the configured run root", async () => {
+    const root = mkdtempSync(join(tmpdir(), "musaed-run-root-"));
+    const previousRunRoot = process.env.AGENT_RUN_ROOT;
+    process.env.AGENT_RUN_ROOT = root;
+
+    try {
+      await expect(
+        prepareRun({
+          ...envelope,
+          workingDirectory: "/root/.pi",
+          agentDirectory: join(root, "agent"),
+        }),
+      ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
+    } finally {
+      process.env.AGENT_RUN_ROOT = previousRunRoot;
+    }
+  });
+
+  it("rejects symlinked paths inside the configured run root", async () => {
+    const root = mkdtempSync(join(tmpdir(), "musaed-run-root-"));
+    const outside = mkdtempSync(join(tmpdir(), "musaed-outside-"));
+    const linked = join(root, "linked");
+    symlinkSync(outside, linked);
+    const previousRunRoot = process.env.AGENT_RUN_ROOT;
+    process.env.AGENT_RUN_ROOT = root;
+
+    try {
+      await expect(
+        prepareRun({
+          ...envelope,
+          workingDirectory: join(root, "workspace"),
+          agentDirectory: linked,
+        }),
+      ).rejects.toThrow("Path must not contain symlinks");
+      expect(lstatSync(linked).isSymbolicLink()).toBe(true);
+    } finally {
+      process.env.AGENT_RUN_ROOT = previousRunRoot;
     }
   });
 

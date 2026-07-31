@@ -7,6 +7,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-musaed} -d ${POSTGRES_DB:-musaed}"]
       interval: 5s
@@ -51,6 +52,7 @@ services:
       dockerfile: apps/agent/Dockerfile
     environment:
       PORT: 3001
+      AGENT_RUN_ROOT: /var/lib/musaed/runs
     ports:
       - "3001:3001"
     depends_on:
@@ -71,7 +73,7 @@ services:
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-development-only}
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-change-me-too}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-musaed}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-musaed}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-musaed}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/litellm
     volumes:
       - ./litellm.config.yaml:/app/config.yaml:ro
     ports:

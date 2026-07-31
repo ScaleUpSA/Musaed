@@ -72,7 +72,15 @@ const assertVerificationConfiguration = (): void => {
 
 export const buildServer = () => {
   assertVerificationConfiguration();
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: true,
+    ajv: {
+      customOptions: {
+        coerceTypes: false,
+        removeAdditional: false,
+      },
+    },
+  });
 
   app.get("/healthz", async () => ({ status: "ok", service: "agent" }));
 

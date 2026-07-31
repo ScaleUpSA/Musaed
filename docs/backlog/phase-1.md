@@ -24,7 +24,7 @@ Define the envelope and event stream in `packages/contracts`: run/user/group ide
 
 `POST /runs` authenticates the user, resolves group policy, mints a short-lived signed envelope, persists a `runs` row, and dispatches to the agent runtime.
 
-**Done when:** an authenticated request produces a persisted run and a signed envelope; an unauthenticated one is rejected; an expired envelope is rejected by the runtime; **a test asserts no provider key appears anywhere in the envelope**.
+**Done when:** an authenticated request produces a persisted run and a signed envelope; an unauthenticated one is rejected; the runtime cryptographically verifies the signature and rejects expired envelopes; **a test asserts no provider key appears anywhere in the envelope**.
 
 ## 4. Agent runtime constructs an isolated pi session
 
