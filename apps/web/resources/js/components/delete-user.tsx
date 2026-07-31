@@ -36,8 +36,8 @@ export default function DeleteUser() {
     return (
         <div className="space-y-6">
             <HeadingSmall title={t('account.delete')} description={t('account.delete_description')} />
-            <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
+            <div className="border-destructive/30 bg-destructive/10 space-y-4 rounded-xl border p-5">
+                <div className="text-destructive space-y-1">
                     <p className="font-medium">{t('account.warning')}</p>
                     <p className="text-sm">{t('account.delete_warning')}</p>
                 </div>
@@ -48,9 +48,7 @@ export default function DeleteUser() {
                     </DialogTrigger>
                     <DialogContent>
                         <DialogTitle>{t('account.delete_confirmation')}</DialogTitle>
-                        <DialogDescription>
-                            {t('account.delete_details')}
-                        </DialogDescription>
+                        <DialogDescription>{t('account.delete_details')}</DialogDescription>
                         <form className="space-y-6" onSubmit={deleteUser}>
                             <div className="grid gap-2">
                                 <Label htmlFor="password" className="sr-only">

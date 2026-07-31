@@ -2,10 +2,13 @@ FROM node:24-bookworm AS assets
 
 WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.13.1 --activate
-COPY apps/web/package.json ./
-RUN pnpm install --no-frozen-lockfile
-COPY apps/web ./
-RUN pnpm build
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/contracts/package.json packages/contracts/package.json
+RUN pnpm install --frozen-lockfile
+COPY packages/contracts packages/contracts
+COPY apps/web apps/web
+RUN pnpm --filter @musaed/contracts build && pnpm --filter @musaed/web build
 
 FROM composer:2 AS vendor
 WORKDIR /app
@@ -18,7 +21,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y libpq-dev && docker-php-ext-install pdo_pgsql && rm -rf /var/lib/apt/lists/*
 COPY apps/web ./
 COPY --from=vendor /app/vendor ./vendor
-COPY --from=assets /app/public/build ./public/build
+COPY --from=assets /app/apps/web/public/build ./public/build
 COPY apps/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 RUN rm -f bootstrap/cache/*.php && chmod +x /usr/local/bin/docker-entrypoint
 EXPOSE 8000

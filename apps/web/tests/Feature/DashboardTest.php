@@ -15,10 +15,17 @@ class DashboardTest extends TestCase
         $this->get('/dashboard')->assertRedirect('/login');
     }
 
-    public function test_authenticated_users_can_visit_the_dashboard()
+    public function test_authenticated_users_can_visit_the_workspace()
     {
         $this->actingAs($user = User::factory()->create());
 
-        $this->get('/dashboard')->assertOk();
+        $this->get('/workspace')->assertOk();
+    }
+
+    public function test_dashboard_redirects_to_the_workspace()
+    {
+        $this->actingAs(User::factory()->create());
+
+        $this->get('/dashboard')->assertRedirect('/workspace');
     }
 }
