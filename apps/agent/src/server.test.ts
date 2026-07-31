@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdtempSync, symlinkSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -108,15 +108,22 @@ describe("agent service", () => {
     const root = mkdtempSync(join(tmpdir(), "musaed-run-root-"));
     const previousRunRoot = process.env.AGENT_RUN_ROOT;
     process.env.AGENT_RUN_ROOT = root;
+    const app = buildServer();
 
     try {
-      await expect(
-        prepareRun({
+      const response = await app.inject({
+        method: "POST",
+        url: "/runs/prepare",
+        payload: {
           ...envelope,
           workingDirectory: "/root/.pi",
           agentDirectory: join(root, "agent"),
-        }),
-      ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe("RUN_PATH_OUTSIDE_ROOT");
+
       await expect(
         prepareRun({
           ...envelope,
@@ -126,6 +133,7 @@ describe("agent service", () => {
       ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
     } finally {
       process.env.AGENT_RUN_ROOT = previousRunRoot;
+      await app.close();
     }
   });
 
@@ -136,18 +144,50 @@ describe("agent service", () => {
     symlinkSync(outside, linked);
     const previousRunRoot = process.env.AGENT_RUN_ROOT;
     process.env.AGENT_RUN_ROOT = root;
+    const app = buildServer();
 
     try {
-      await expect(
-        prepareRun({
+      const response = await app.inject({
+        method: "POST",
+        url: "/runs/prepare",
+        payload: {
           ...envelope,
           workingDirectory: join(root, "workspace"),
           agentDirectory: linked,
-        }),
-      ).rejects.toThrow("Path must not contain symlinks");
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json().code).toBe("RUN_PATH_SYMLINK");
       expect(lstatSync(linked).isSymbolicLink()).toBe(true);
     } finally {
       process.env.AGENT_RUN_ROOT = previousRunRoot;
+      await app.close();
+    }
+  });
+
+  it("returns a server error for genuine filesystem failures", async () => {
+    const rootFile = join(tmpdir(), `musaed-run-root-${Date.now()}`);
+    writeFileSync(rootFile, "not a directory");
+    const previousRunRoot = process.env.AGENT_RUN_ROOT;
+    process.env.AGENT_RUN_ROOT = rootFile;
+    const app = buildServer();
+
+    try {
+      const response = await app.inject({
+        method: "POST",
+        url: "/runs/prepare",
+        payload: {
+          ...envelope,
+          workingDirectory: join(rootFile, "workspace"),
+          agentDirectory: join(rootFile, "agent"),
+        },
+      });
+
+      expect(response.statusCode).toBe(500);
+    } finally {
+      process.env.AGENT_RUN_ROOT = previousRunRoot;
+      await app.close();
     }
   });
 

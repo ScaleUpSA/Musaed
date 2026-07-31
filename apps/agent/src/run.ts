@@ -18,6 +18,20 @@ export interface PreparedRun {
   status: "prepared";
 }
 
+export class RunPathPolicyError extends Error {
+  readonly statusCode = 400;
+  readonly code: "RUN_PATH_OUTSIDE_ROOT" | "RUN_PATH_SYMLINK";
+
+  constructor(
+    code: "RUN_PATH_OUTSIDE_ROOT" | "RUN_PATH_SYMLINK",
+    message: string,
+  ) {
+    super(message);
+    this.code = code;
+    this.name = "RunPathPolicyError";
+  }
+}
+
 const runRoot = (): string => process.env.AGENT_RUN_ROOT ?? "/tmp/musaed-runs";
 
 const isNotFoundError = (error: unknown): boolean =>
@@ -43,7 +57,10 @@ const pathWithinRunRoot = async (path: string): Promise<string> => {
   const relativeCandidate = relative(rootReal, candidate);
 
   if (isOutsideRoot(rootReal, candidate)) {
-    throw new Error(`Path must be inside AGENT_RUN_ROOT: ${path}`);
+    throw new RunPathPolicyError(
+      "RUN_PATH_OUTSIDE_ROOT",
+      `Path must be inside AGENT_RUN_ROOT: ${path}`,
+    );
   }
 
   const segments = relativeCandidate === "" ? [] : relativeCandidate.split(sep);
@@ -54,7 +71,10 @@ const pathWithinRunRoot = async (path: string): Promise<string> => {
     try {
       const stats = await lstat(current);
       if (stats.isSymbolicLink()) {
-        throw new Error(`Path must not contain symlinks: ${path}`);
+        throw new RunPathPolicyError(
+          "RUN_PATH_SYMLINK",
+          `Path must not contain symlinks: ${path}`,
+        );
       }
     } catch (error: unknown) {
       if (!isNotFoundError(error)) {
@@ -65,11 +85,17 @@ const pathWithinRunRoot = async (path: string): Promise<string> => {
 
   await mkdir(candidate, { recursive: true });
   if ((await lstat(candidate)).isSymbolicLink()) {
-    throw new Error(`Path must not contain symlinks: ${path}`);
+    throw new RunPathPolicyError(
+      "RUN_PATH_SYMLINK",
+      `Path must not contain symlinks: ${path}`,
+    );
   }
   const candidateReal = await realpath(candidate);
   if (isOutsideRoot(rootReal, candidateReal)) {
-    throw new Error(`Path must be inside AGENT_RUN_ROOT: ${path}`);
+    throw new RunPathPolicyError(
+      "RUN_PATH_OUTSIDE_ROOT",
+      `Path must be inside AGENT_RUN_ROOT: ${path}`,
+    );
   }
 
   return candidateReal;
