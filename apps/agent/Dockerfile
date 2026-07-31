@@ -9,6 +9,7 @@ COPY packages/contracts/package.json packages/contracts/package.json
 RUN pnpm install --frozen-lockfile
 COPY apps/agent apps/agent
 COPY packages/contracts packages/contracts
+RUN pnpm --filter @musaed/contracts build
 RUN pnpm --filter @musaed/agent build
 RUN pnpm --filter @musaed/agent deploy --prod --legacy /out
 

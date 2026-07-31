@@ -4,6 +4,7 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { type AgentConfig, loadAgentConfig } from "./config.js";
 import { buildServer } from "./server.js";
 import { prepareRun } from "./run.js";
 
@@ -33,11 +34,17 @@ const envelope = {
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
   signature: "test-signature",
-} as const;
+};
+
+const createConfig = (agentRunRoot: string): AgentConfig => ({
+  port: 3001,
+  agentRunRoot,
+  litellmUrl: "http://litellm:4000",
+});
 
 describe("agent service", () => {
   it("reports health", async () => {
-    const app = buildServer();
+    const app = buildServer(createConfig("/tmp/musaed-test-runs"));
     const response = await app.inject({ method: "GET", url: "/healthz" });
 
     expect(response.statusCode).toBe(200);
@@ -46,7 +53,7 @@ describe("agent service", () => {
   });
 
   it("rejects malformed run envelopes", async () => {
-    const app = buildServer();
+    const app = buildServer(createConfig("/tmp/musaed-test-runs"));
     const response = await app.inject({
       method: "POST",
       url: "/runs/prepare",
@@ -58,7 +65,7 @@ describe("agent service", () => {
   });
 
   it("rejects additional properties and type coercion", async () => {
-    const app = buildServer();
+    const app = buildServer(createConfig("/tmp/musaed-test-runs"));
 
     const extraPropertyResponse = await app.inject({
       method: "POST",
@@ -86,29 +93,24 @@ describe("agent service", () => {
     const home = mkdtempSync(join(tmpdir(), "musaed-home-"));
     const root = mkdtempSync(join(tmpdir(), "musaed-run-root-"));
     const previousHome = process.env.HOME;
-    const previousRunRoot = process.env.AGENT_RUN_ROOT;
     process.env.HOME = home;
-    process.env.AGENT_RUN_ROOT = root;
 
     try {
       await prepareRun({
         ...envelope,
         workingDirectory: join(root, "workspace"),
         agentDirectory: join(root, "agent"),
-      });
+      }, createConfig(root));
 
       expect(existsSync(join(home, ".pi"))).toBe(false);
     } finally {
       process.env.HOME = previousHome;
-      process.env.AGENT_RUN_ROOT = previousRunRoot;
     }
   });
 
   it("rejects paths outside the configured run root", async () => {
     const root = mkdtempSync(join(tmpdir(), "musaed-run-root-"));
-    const previousRunRoot = process.env.AGENT_RUN_ROOT;
-    process.env.AGENT_RUN_ROOT = root;
-    const app = buildServer();
+    const app = buildServer(createConfig(root));
 
     try {
       const response = await app.inject({
@@ -129,10 +131,9 @@ describe("agent service", () => {
           ...envelope,
           workingDirectory: join(root, "..", "outside"),
           agentDirectory: join(root, "agent"),
-        }),
+        }, createConfig(root)),
       ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
     } finally {
-      process.env.AGENT_RUN_ROOT = previousRunRoot;
       await app.close();
     }
   });
@@ -142,9 +143,7 @@ describe("agent service", () => {
     const outside = mkdtempSync(join(tmpdir(), "musaed-outside-"));
     const linked = join(root, "linked");
     symlinkSync(outside, linked);
-    const previousRunRoot = process.env.AGENT_RUN_ROOT;
-    process.env.AGENT_RUN_ROOT = root;
-    const app = buildServer();
+    const app = buildServer(createConfig(root));
 
     try {
       const response = await app.inject({
@@ -161,7 +160,6 @@ describe("agent service", () => {
       expect(response.json().code).toBe("RUN_PATH_SYMLINK");
       expect(lstatSync(linked).isSymbolicLink()).toBe(true);
     } finally {
-      process.env.AGENT_RUN_ROOT = previousRunRoot;
       await app.close();
     }
   });
@@ -169,9 +167,7 @@ describe("agent service", () => {
   it("returns a server error for genuine filesystem failures", async () => {
     const rootFile = join(tmpdir(), `musaed-run-root-${Date.now()}`);
     writeFileSync(rootFile, "not a directory");
-    const previousRunRoot = process.env.AGENT_RUN_ROOT;
-    process.env.AGENT_RUN_ROOT = rootFile;
-    const app = buildServer();
+    const app = buildServer(createConfig(rootFile));
 
     try {
       const response = await app.inject({
@@ -186,22 +182,27 @@ describe("agent service", () => {
 
       expect(response.statusCode).toBe(500);
     } finally {
-      process.env.AGENT_RUN_ROOT = previousRunRoot;
       await app.close();
     }
   });
 
-  it("refuses production startup without envelope verification configuration", () => {
-    const previousNodeEnv = process.env.NODE_ENV;
-    const previousPublicKey = process.env.AGENT_ENVELOPE_PUBLIC_KEY;
-    process.env.NODE_ENV = "production";
-    delete process.env.AGENT_ENVELOPE_PUBLIC_KEY;
-
-    try {
-      expect(() => buildServer()).toThrow("AGENT_ENVELOPE_PUBLIC_KEY is required in production");
-    } finally {
-      process.env.NODE_ENV = previousNodeEnv;
-      process.env.AGENT_ENVELOPE_PUBLIC_KEY = previousPublicKey;
-    }
+  it("requires security and routing configuration at startup", () => {
+    expect(() =>
+      loadAgentConfig({
+        NODE_ENV: "production",
+        AGENT_RUN_ROOT: "/tmp/musaed-runs",
+        LITELLM_URL: "http://litellm:4000",
+      }),
+    ).toThrow("AGENT_ENVELOPE_PUBLIC_KEY is required in production");
+    expect(() =>
+      loadAgentConfig({
+        AGENT_RUN_ROOT: "/tmp/musaed-runs",
+      }),
+    ).toThrow("LITELLM_URL is required");
+    expect(() =>
+      loadAgentConfig({
+        LITELLM_URL: "http://litellm:4000",
+      }),
+    ).toThrow("AGENT_RUN_ROOT is required");
   });
 });

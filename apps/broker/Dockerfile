@@ -8,6 +8,7 @@ COPY packages/contracts/package.json packages/contracts/package.json
 RUN pnpm install --frozen-lockfile
 COPY apps/broker apps/broker
 COPY packages/contracts packages/contracts
+RUN pnpm --filter @musaed/contracts build
 RUN pnpm --filter @musaed/broker build
 RUN pnpm --filter @musaed/broker deploy --prod --legacy /out
 

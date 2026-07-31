@@ -214,6 +214,10 @@ importers:
         version: 1.33.0
 
   packages/contracts:
+    dependencies:
+      '@sinclair/typebox':
+        specifier: 0.34.33
+        version: 0.34.33
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
@@ -1601,6 +1605,9 @@ packages:
 
   '@silvia-odwyer/photon-node@0.3.4':
     resolution: {integrity: sha512-bnly4BKB3KDTFxrUIcgCLbaeVVS8lrAkri1pEzskpmxu9MdfGQTy8b8EgcD83ywD3RPMsIulY8xJH5Awa+t9fA==}
+
+  '@sinclair/typebox@0.34.33':
+    resolution: {integrity: sha512-5HAV9exOMcXRUxo+9iYB5n09XxzCXnfy4VTNW4xnDv+FgjzAGY989C28BIdljKqmF+ZltUwujE3aossvcVtq6g==}
 
   '@smithy/core@3.31.1':
     resolution: {integrity: sha512-CyogUINxvi7C7LDsh8Syo6hVJOT9ckz4rG8dRZfTJ8r91HkMY59PnNooaj7WcHyxEkxPfBAmbgztZU+xTo76lg==}
@@ -5126,6 +5133,8 @@ snapshots:
     optional: true
 
   '@silvia-odwyer/photon-node@0.3.4': {}
+
+  '@sinclair/typebox@0.34.33': {}
 
   '@smithy/core@3.31.1':
     dependencies:

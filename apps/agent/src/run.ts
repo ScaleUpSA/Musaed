@@ -10,6 +10,8 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type { RunEnvelope } from "@musaed/contracts";
 
+import type { AgentConfig } from "./config.js";
+
 export interface PreparedRun {
   runId: string;
   allowedModels: readonly string[];
@@ -32,14 +34,6 @@ export class RunPathPolicyError extends Error {
   }
 }
 
-const runRoot = (): string => process.env.AGENT_RUN_ROOT ?? "/tmp/musaed-runs";
-
-const isNotFoundError = (error: unknown): boolean =>
-  typeof error === "object" &&
-  error !== null &&
-  "code" in error &&
-  error.code === "ENOENT";
-
 const isOutsideRoot = (root: string, candidate: string): boolean => {
   const candidateRelative = relative(root, candidate);
   return (
@@ -49,12 +43,11 @@ const isOutsideRoot = (root: string, candidate: string): boolean => {
   );
 };
 
-const pathWithinRunRoot = async (path: string): Promise<string> => {
-  const root = resolve(runRoot());
+const pathWithinRunRoot = async (path: string, runRoot: string): Promise<string> => {
+  const root = resolve(runRoot);
   await mkdir(root, { recursive: true });
   const rootReal = await realpath(root);
   const candidate = resolve(path);
-  const relativeCandidate = relative(rootReal, candidate);
 
   if (isOutsideRoot(rootReal, candidate)) {
     throw new RunPathPolicyError(
@@ -63,33 +56,20 @@ const pathWithinRunRoot = async (path: string): Promise<string> => {
     );
   }
 
-  const segments = relativeCandidate === "" ? [] : relativeCandidate.split(sep);
-  let current = rootReal;
+  await mkdir(candidate, { recursive: true });
 
+  const segments = relative(rootReal, candidate).split(sep).filter(Boolean);
+  let current = rootReal;
   for (const segment of segments) {
     current = resolve(current, segment);
-    try {
-      const stats = await lstat(current);
-      if (stats.isSymbolicLink()) {
-        throw new RunPathPolicyError(
-          "RUN_PATH_SYMLINK",
-          `Path must not contain symlinks: ${path}`,
-        );
-      }
-    } catch (error: unknown) {
-      if (!isNotFoundError(error)) {
-        throw error;
-      }
+    if ((await lstat(current)).isSymbolicLink()) {
+      throw new RunPathPolicyError(
+        "RUN_PATH_SYMLINK",
+        `Path must not contain symlinks: ${path}`,
+      );
     }
   }
 
-  await mkdir(candidate, { recursive: true });
-  if ((await lstat(candidate)).isSymbolicLink()) {
-    throw new RunPathPolicyError(
-      "RUN_PATH_SYMLINK",
-      `Path must not contain symlinks: ${path}`,
-    );
-  }
   const candidateReal = await realpath(candidate);
   if (isOutsideRoot(rootReal, candidateReal)) {
     throw new RunPathPolicyError(
@@ -101,9 +81,15 @@ const pathWithinRunRoot = async (path: string): Promise<string> => {
   return candidateReal;
 };
 
-export async function prepareRun(envelope: RunEnvelope): Promise<PreparedRun> {
-  const workingDirectory = await pathWithinRunRoot(envelope.workingDirectory);
-  const agentDirectory = await pathWithinRunRoot(envelope.agentDirectory);
+export async function prepareRun(
+  envelope: RunEnvelope,
+  config: AgentConfig,
+): Promise<PreparedRun> {
+  const workingDirectory = await pathWithinRunRoot(
+    envelope.workingDirectory,
+    config.agentRunRoot,
+  );
+  const agentDirectory = await pathWithinRunRoot(envelope.agentDirectory, config.agentRunRoot);
   const modelRuntime = await ModelRuntime.create({
     credentials: new InMemoryCredentialStore(),
     modelsPath: null,
@@ -111,7 +97,7 @@ export async function prepareRun(envelope: RunEnvelope): Promise<PreparedRun> {
   modelRuntime.registerProvider("litellm", {
     api: "openai-completions",
     apiKey: envelope.litellmVirtualKey,
-    baseUrl: process.env.LITELLM_URL ?? "http://litellm:4000",
+    baseUrl: config.litellmUrl,
     models: envelope.allowedModels.map((id) => ({
       id,
       name: id,
@@ -134,13 +120,15 @@ export async function prepareRun(envelope: RunEnvelope): Promise<PreparedRun> {
   });
   await resourceLoader.reload();
 
+  // Until the policy hook lands, a non-empty allow-list is advisory only.
+  const noTools = envelope.allowedTools.length === 0 ? "all" : undefined;
   await createAgentSession({
     cwd: workingDirectory,
     agentDir: agentDirectory,
     modelRuntime,
     settingsManager: SettingsManager.inMemory(),
     resourceLoader,
-    noTools: envelope.allowedTools.length === 0 ? "all" : undefined,
+    ...(noTools === undefined ? {} : { noTools }),
   });
 
   return {

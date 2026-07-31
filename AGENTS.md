@@ -27,6 +27,18 @@ Violating one of these is a security bug, not a style disagreement. They are lis
 
 ## Conventions
 
+### Code style
+
+- Prefer simple, skimmable code over clever code.
+- Keep implementations short and reduce indirection; do not add abstractions before they are earned.
+- Return early when a condition is settled.
+- Minimise representable states and keep argument lists short.
+- Do not add optional or override parameters unless the value is truly optional.
+- Use discriminated unions for variants and handle every variant exhaustively.
+- Trust internal types, but validate every external boundary: HTTP, environment, database, and files.
+- Assert when a missing value means the deployment is misconfigured; do not silently default it.
+- Do not add `try`/`catch` without a real recovery path.
+
 **Laravel (`apps/web`).** Standard Laravel layout; actions for non-trivial business logic; form requests for validation; policies for authorisation — never inline `if ($user->role === ...)`. Migrations are never edited after being merged. Pest for tests, Pint for formatting. Every user-visible string is translatable; the UI must work in Arabic and RTL, so use logical CSS properties (`ps-*`/`pe-*`, `ms-*`/`me-*`), never `pl-*`/`pr-*`.
 
 **React (`apps/web/resources/js`).** TypeScript, no `any`. Inertia pages under `pages/`, shared UI under `components/`. Page state comes through Inertia props; run events come over the event stream — don't mix the two.
