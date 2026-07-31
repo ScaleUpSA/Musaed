@@ -14,6 +14,49 @@ Musaed runs model-directed code on behalf of non-technical users, using credenti
 
 The load-bearing line is the third: **model output is untrusted input.** Every tool call is an instruction that may have been authored by a prompt injection in a web page the agent just read.
 
+```mermaid
+flowchart TB
+    subgraph z1["Zone 1 · fully trusted"]
+        direction LR
+        web["Laravel control plane<br/>policy · audit · credentials"]
+        db[("Postgres")]
+        web --- db
+    end
+
+    subgraph z2["Zone 2 · trusted code, untrusted input"]
+        agent["Agent runtime<br/>holds no long-lived credentials"]
+    end
+
+    subgraph z3["Zone 3 · mediators"]
+        direction LR
+        litellm["LiteLLM<br/>holds provider keys"]
+        broker["Broker<br/>only component touching Podman"]
+        proxy["Egress proxy<br/>deny by default"]
+    end
+
+    subgraph z4["Zone 4 · hostile"]
+        direction LR
+        sandbox["Sandbox container"]
+        model["Model output"]
+        webpages["Fetched pages &amp; documents"]
+    end
+
+    web ==>|"envelope: the only grant of authority"| agent
+    agent --> litellm
+    agent -->|"no socket, opaque handle"| broker
+    broker --> sandbox
+    sandbox --> proxy
+    model -.->|"tool calls, treated as attacker-controlled"| agent
+    webpages -.->|"prompt injection"| model
+
+    classDef trusted fill:#0b4f8a,stroke:#062f52,color:#fff
+    classDef hostile fill:#8a1c1c,stroke:#5c0f0f,color:#fff
+    class web,db trusted
+    class sandbox,model,webpages hostile
+```
+
+Authority only ever flows downward, and only through the envelope. Nothing in Zone 4 can widen what Zone 2 is permitted to do — which is why a prompt injection reaching the model is a contained event rather than a breach.
+
 ## Threats we design against
 
 **Prompt injection leading to tool abuse.** A page or document tells the agent to exfiltrate data or call a destructive tool. Mitigations: envelope-scoped tool allow-lists, `tool_call` hooks that block, approval gates on sensitive tools, deny-by-default egress, and the fact that the agent has no ambient credentials to steal.
