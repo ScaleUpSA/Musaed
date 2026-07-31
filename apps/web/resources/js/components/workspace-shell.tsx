@@ -1,6 +1,5 @@
 import {
     CheckCircle2,
-    ChevronRight,
     CircleDot,
     CircleStop,
     FileText,
@@ -23,7 +22,7 @@ import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
 import { shouldStickToBottom, type RunViewState } from '@/lib/workspace-events';
 import { type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 
 type Conversation = {
     id: string;
@@ -31,13 +30,7 @@ type Conversation = {
     preview: string;
 };
 
-const conversation: Conversation = {
-    id: 'launch-planning',
-    title: 'workspace.conversation_title',
-    preview: 'workspace.conversation_preview',
-};
-
-export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
+export function ConversationRail({ conversations, selectedId, onSelect, onNew }: { conversations: Conversation[]; selectedId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
     const t = useTranslations();
     const { auth } = usePage<SharedData>().props;
 
@@ -55,7 +48,8 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
                 <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold">{t('workspace.conversations')}</p>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-3">
-                <button
+                {conversations.map((conversation) => <button
+                    key={conversation.id}
                     type="button"
                     className={cn(
                         'group flex w-full items-start gap-3 rounded-xl p-3 text-start transition-colors',
@@ -67,10 +61,10 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
                         <CircleDot className="size-4" />
                     </div>
                     <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">{t(conversation.title)}</span>
-                        <span className="text-muted-foreground mt-0.5 block truncate text-xs">{t(conversation.preview)}</span>
+                        <span className="block truncate text-sm font-medium">{conversation.title.startsWith('workspace.') ? t(conversation.title) : conversation.title}</span>
+                        <span className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview.startsWith('workspace.') ? t(conversation.preview) : conversation.preview}</span>
                     </span>
-                </button>
+                </button>)}
             </div>
             <div className="border-border/80 border-t p-3">
                 <DropdownMenu>
@@ -86,24 +80,6 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
                 </DropdownMenu>
             </div>
         </aside>
-    );
-}
-
-function EmptyConversation({ onSelect }: { onSelect: () => void }) {
-    const t = useTranslations();
-
-    return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-            <div className="bg-muted flex size-12 items-center justify-center rounded-full">
-                <CircleDot className="text-muted-foreground size-5" />
-            </div>
-            <h2 className="font-medium">{t('workspace.no_selection_title')}</h2>
-            <p className="text-muted-foreground max-w-xs text-sm">{t('workspace.no_selection_description')}</p>
-            <Button variant="outline" size="sm" onClick={onSelect}>
-                {t('workspace.conversations')}
-                <ChevronRight className="rtl:rotate-180" />
-            </Button>
-        </div>
     );
 }
 
@@ -162,7 +138,7 @@ function ToolActivity({ state }: { state: RunViewState }) {
     );
 }
 
-function ConversationView({ state, messages, onSubmit }: { state: RunViewState; messages: string[]; onSubmit: (message: string) => void }) {
+function ConversationView({ state, messages, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; onSubmit: (message: string) => void }) {
     const t = useTranslations();
     const [draft, setDraft] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -210,10 +186,10 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
 
             <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-                    {messages.map((message, index) => (
+                    {messages.filter((message) => message.role === 'user').map((message, index) => (
                         <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
                             <div className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
-                                {message}
+                                {message.content}
                             </div>
                         </div>
                     ))}
@@ -313,12 +289,16 @@ export default function WorkspaceShell({
     state,
     messages,
     onSubmit,
+    conversationId,
+    conversations,
 }: {
     state: RunViewState;
-    messages: string[];
+    messages: { role: 'user' | 'assistant'; content: string }[];
     onSubmit: (message: string) => void;
+    conversationId: string | null;
+    conversations: { id: string; title: string | null; message_count: number }[];
 }) {
-    const [selectedId, setSelectedId] = useState<string | null>(conversation.id);
+    const [selectedId, setSelectedId] = useState<string | null>(conversationId);
     const [panelOpen, setPanelOpen] = useState(true);
 
     return (
@@ -331,12 +311,20 @@ export default function WorkspaceShell({
                         : 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_auto]',
                 )}
             >
-                <ConversationRail selectedId={selectedId} onSelect={setSelectedId} onNew={() => setSelectedId(null)} />
-                {selectedId ? (
-                    <ConversationView state={state} messages={messages} onSubmit={onSubmit} />
-                ) : (
-                    <EmptyConversation onSelect={() => setSelectedId(conversation.id)} />
-                )}
+                <ConversationRail
+                    conversations={conversations.map((item) => ({
+                        id: item.id,
+                        title: item.title ?? 'workspace.conversation_title',
+                        preview: item.message_count > 0 ? 'workspace.conversation_preview' : 'workspace.empty_conversation',
+                    }))}
+                    selectedId={selectedId}
+                    onSelect={(id) => {
+                        setSelectedId(id);
+                        router.visit(`/workspace?conversation_id=${encodeURIComponent(id)}`, { preserveScroll: true });
+                    }}
+                    onNew={() => setSelectedId(null)}
+                />
+                <ConversationView state={state} messages={messages} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
             </div>
         </div>

@@ -1,10 +1,42 @@
 import Fastify from "fastify";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+import { URL } from "node:url";
 
 import { RunEnvelopeRequestSchema } from "@musaed/contracts";
 
 import { loadAgentConfig, type AgentConfig } from "./config.js";
 import { verifyRunEnvelope } from "./envelope.js";
 import { prepareRun } from "./run.js";
+import { executeRun } from "./run.js";
+
+const postEvent = async (url: string, event: Record<string, unknown>): Promise<void> => {
+  const target = new URL(url);
+  const request = target.protocol === "https:" ? httpsRequest : httpRequest;
+
+  await new Promise<void>((resolve, reject) => {
+    const client = request(
+      target,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+      },
+      (response) => {
+        response.resume();
+        if ((response.statusCode ?? 500) >= 400) {
+          reject(new Error("Event callback rejected"));
+          return;
+        }
+        resolve();
+      },
+    );
+
+    client.on("error", reject);
+    client.end(JSON.stringify(event));
+  });
+};
 
 export const buildServer = (config: AgentConfig) => {
   const app = Fastify({
@@ -23,6 +55,22 @@ export const buildServer = (config: AgentConfig) => {
     "/runs/prepare",
     { schema: { body: RunEnvelopeRequestSchema } },
     async (request) => prepareRun(verifyRunEnvelope(request.body, config), config),
+  );
+
+  app.post(
+    "/runs/execute",
+    { schema: { body: RunEnvelopeRequestSchema } },
+    async (request, reply) => {
+      const envelope = verifyRunEnvelope(request.body, config);
+      const emit = async (...args: [Record<string, unknown>]): Promise<void> => {
+        await postEvent(envelope.callbacks.eventsUrl, args[0]);
+      };
+
+      setImmediate(() => {
+        void executeRun(envelope, config, emit);
+      });
+      return reply.code(202).send({ runId: envelope.runId, status: "accepted" });
+    },
   );
 
   return app;

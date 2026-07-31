@@ -10,6 +10,7 @@ const runEnvelopeProperties = {
     groupId: nonEmptyString(),
     workspaceId: nonEmptyString(),
     conversationId: nonEmptyString(),
+    prompt: Type.Optional(nonEmptyString()),
     allowedModels: Type.Array(nonEmptyString(), { minItems: 1 }),
     workingDirectory: nonEmptyString(),
     agentDirectory: nonEmptyString(),

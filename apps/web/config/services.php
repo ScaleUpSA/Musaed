@@ -36,6 +36,10 @@ return [
     ],
 
     'agent' => [
+        'url' => env('AGENT_URL', 'http://127.0.0.1:3001'),
+        'events_url' => env('AGENT_EVENTS_URL', 'http://127.0.0.1:8000/internal/runs/events'),
+        'audit_url' => env('AGENT_AUDIT_URL', 'http://127.0.0.1:8000/internal/runs/events'),
+        'approvals_url' => env('AGENT_APPROVALS_URL', 'http://127.0.0.1:8000/internal/runs/events'),
         'envelope_private_key' => env('AGENT_ENVELOPE_PRIVATE_KEY'),
         'envelope_lifetime_seconds' => (int) env('RUN_ENVELOPE_LIFETIME_SECONDS', 300),
     ],

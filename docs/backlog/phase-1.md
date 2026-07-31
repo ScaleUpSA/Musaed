@@ -26,8 +26,9 @@ Define the envelope and event stream in `packages/contracts`: run/user/group ide
 
 **Implemented in this phase:** Ed25519 signing in Laravel, canonical envelope
 serialization, unconditional Node verification, expiry enforcement and
-cross-language verification coverage. The run persistence, policy resolution
-and dispatch endpoint remain to be built.
+cross-language verification coverage. The lifecycle slice now also persists
+conversations, messages, runs and events; resolves a default group policy;
+dispatches signed envelopes to the runtime; and retains assistant output.
 
 **Done when:** an authenticated request produces a persisted run and a signed envelope; an unauthenticated one is rejected; the runtime cryptographically verifies the signature and rejects expired envelopes; **a test asserts no provider key appears anywhere in the envelope**.
 
@@ -37,13 +38,21 @@ Verify the envelope, then build a pi session with explicit `cwd` and `agentDir`,
 
 **Implemented in this phase:** the runtime requires its public verification key
 in every environment and refuses to construct a session until signature and
-expiry checks pass.
+expiry checks pass. The current model boundary is a clearly named
+`ClearlyFakeModelProvider`; no external provider call is made until provider
+selection and credentials are configured.
 
 **Done when:** a run completes against LiteLLM; a test proves the session reads nothing from `~/.pi` and writes nothing outside its run directory; two concurrent runs with different envelopes do not observe each other's models, credentials or files.
 
 ## 5. Event streaming to React
 
-pi events → runtime → Laravel or direct SSE → an Inertia page rendering a live token stream.
+runtime events → Laravel callbacks → persisted run events → browser polling →
+an Inertia page rendering a live token stream.
+
+**Implemented in this phase:** runtime pushes events to Laravel's existing
+callback URL, and the browser polls persisted events so refreshes can rebuild
+the transcript. The provider is intentionally fake until a real provider is
+chosen.
 
 **Done when:** a user sends a message and sees streamed output; the stream survives a page refresh mid-run; a failed run surfaces an error rather than hanging.
 

@@ -109,6 +109,19 @@ sequenceDiagram
 
 Cross-cutting: PostgreSQL + pgvector · Redis/Horizon · OpenTelemetry.
 
+For the first lifecycle slice, the runtime pushes typed events to the
+envelope's `eventsUrl`; Laravel persists them as they arrive, and the browser
+polls that persisted event log. Polling is intentionally the simplest
+reload-safe one-way transport here: it adds no new browser streaming service.
+The runtime pushes rather than Laravel polling because the executor already
+knows exactly when an event occurs and the callback coordinates are part of
+the signed envelope.
+
+The provider call is behind the runtime's `ModelProvider` boundary and is
+currently implemented by `ClearlyFakeModelProvider`. It makes no external
+model request and can be replaced when a provider is selected without
+changing the control-plane or browser contracts.
+
 ## The run envelope
 
 The envelope is the contract between the two halves of the system. It is short-lived (single run, minutes), signed, and contains everything the runtime is allowed to know:
