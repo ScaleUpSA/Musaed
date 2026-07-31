@@ -80,4 +80,4 @@ Early days — the shape of things is still moving. Read `docs/architecture.md` 
 
 ## Licence
 
-MIT © ScaleUp
+MIT © [Scale Up](https://scaleup.sa) — مؤسسة التوسع الرقمي لتقنية المعلومات
