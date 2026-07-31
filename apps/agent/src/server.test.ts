@@ -117,6 +117,13 @@ describe("agent service", () => {
           agentDirectory: join(root, "agent"),
         }),
       ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
+      await expect(
+        prepareRun({
+          ...envelope,
+          workingDirectory: join(root, "..", "outside"),
+          agentDirectory: join(root, "agent"),
+        }),
+      ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
     } finally {
       process.env.AGENT_RUN_ROOT = previousRunRoot;
     }
