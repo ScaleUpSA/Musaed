@@ -64,6 +64,9 @@ const pathWithinRunRoot = async (path: string): Promise<string> => {
   }
 
   await mkdir(candidate, { recursive: true });
+  if ((await lstat(candidate)).isSymbolicLink()) {
+    throw new Error(`Path must not contain symlinks: ${path}`);
+  }
   const candidateReal = await realpath(candidate);
   if (isOutsideRoot(rootReal, candidateReal)) {
     throw new Error(`Path must be inside AGENT_RUN_ROOT: ${path}`);
