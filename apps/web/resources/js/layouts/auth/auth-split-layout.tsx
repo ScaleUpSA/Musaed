@@ -1,6 +1,7 @@
 import AppLogoIcon from '@/components/app-logo-icon';
-import { type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { AuthLocaleSwitcher } from '@/components/locale-switcher';
+import { Link } from '@inertiajs/react';
+import { useTranslations } from '@/hooks/use-translations';
 
 interface AuthLayoutProps {
     children: React.ReactNode;
@@ -9,7 +10,7 @@ interface AuthLayoutProps {
 }
 
 export default function AuthSplitLayout({ children, title, description }: AuthLayoutProps) {
-    const { name } = usePage<SharedData>().props;
+    const t = useTranslations();
 
     return (
         <div className="relative grid h-dvh flex-col items-center justify-center px-8 sm:px-0 lg:max-w-none lg:grid-cols-2 lg:px-0">
@@ -17,7 +18,7 @@ export default function AuthSplitLayout({ children, title, description }: AuthLa
                 <div className="absolute inset-0 bg-zinc-900" />
                 <Link href={route('home')} className="relative z-20 flex items-center text-lg font-medium">
                     <AppLogoIcon className="me-2 size-8 fill-current text-white" />
-                    {name}
+                    {t('app.name')}
                 </Link>
             </div>
             <div className="w-full lg:p-8">
@@ -29,6 +30,7 @@ export default function AuthSplitLayout({ children, title, description }: AuthLa
                         <h1 className="text-xl font-medium">{title}</h1>
                         <p className="text-muted-foreground text-sm text-balance">{description}</p>
                     </div>
+                    <AuthLocaleSwitcher />
                     {children}
                 </div>
             </div>

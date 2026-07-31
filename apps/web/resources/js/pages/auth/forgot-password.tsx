@@ -38,6 +38,8 @@ export default function ForgotPassword({ status }: { status?: string }) {
                             type="email"
                             name="email"
                             autoComplete="off"
+                            dir="ltr"
+                            className="text-start"
                             value={data.email}
                             autoFocus
                             onChange={(e) => setData('email', e.target.value)}

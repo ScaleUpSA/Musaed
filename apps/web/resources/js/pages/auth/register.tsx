@@ -63,6 +63,8 @@ export default function Register() {
                             required
                             tabIndex={2}
                             autoComplete="email"
+                            dir="ltr"
+                            className="text-start"
                             value={data.email}
                             onChange={(e) => setData('email', e.target.value)}
                             disabled={processing}

@@ -52,6 +52,8 @@ export default function Login({ status, canResetPassword }: LoginProps) {
                             autoFocus
                             tabIndex={1}
                             autoComplete="email"
+                            dir="ltr"
+                            className="text-start"
                             value={data.email}
                             onChange={(e) => setData('email', e.target.value)}
                             placeholder={t('auth.email_placeholder')}
