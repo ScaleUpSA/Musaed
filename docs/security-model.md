@@ -75,6 +75,18 @@ The signature is base64url without padding. Envelopes use a five-minute
 configured lifetime and the runtime permits only an explicit 30-second clock
 skew before rejecting them.
 
+### Callback authentication
+
+The runtime-to-control-plane direction is authenticated independently of
+network placement. Laravel generates a cryptographically random callback
+credential per run, includes it in the signed envelope, and stores only its
+SHA-256 hash. The runtime sends the credential on every event callback.
+Laravel compares the hash in constant time, checks that the credential belongs
+to the addressed run, and accepts callbacks only while that run is queued or
+running. Missing, forged, cross-run, malformed, completed-run and failed-run
+callbacks all receive the same generic rejection response. The credential is
+never sent to the browser.
+
 ## Threats we design against
 
 **Prompt injection leading to tool abuse.** A page or document tells the agent to exfiltrate data or call a destructive tool. Mitigations: envelope-scoped tool allow-lists, `tool_call` hooks that block, approval gates on sensitive tools, deny-by-default egress, and the fact that the agent has no ambient credentials to steal.

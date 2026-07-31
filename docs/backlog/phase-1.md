@@ -52,7 +52,8 @@ an Inertia page rendering a live token stream.
 **Implemented in this phase:** runtime pushes events to Laravel's existing
 callback URL, and the browser polls persisted events so refreshes can rebuild
 the transcript. The provider is intentionally fake until a real provider is
-chosen.
+chosen. Callbacks are authenticated with a per-run credential carried in the
+signed envelope and invalidated when the run completes or fails.
 
 **Done when:** a user sends a message and sees streamed output; the stream survives a page refresh mid-run; a failed run surfaces an error rather than hanging.
 
