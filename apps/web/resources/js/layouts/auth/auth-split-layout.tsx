@@ -30,8 +30,8 @@ export default function AuthSplitLayout({ children, title, description }: AuthLa
                         <h1 className="text-xl font-medium">{title}</h1>
                         <p className="text-muted-foreground text-sm text-balance">{description}</p>
                     </div>
-                    <AuthLocaleSwitcher />
                     {children}
+                    <AuthLocaleSwitcher />
                 </div>
             </div>
         </div>

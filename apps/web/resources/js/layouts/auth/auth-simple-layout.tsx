@@ -30,8 +30,8 @@ export default function AuthSimpleLayout({ children, title, description }: AuthL
                             <p className="text-muted-foreground text-center text-sm">{description}</p>
                         </div>
                     </div>
-                    <AuthLocaleSwitcher />
                     {children}
+                    <AuthLocaleSwitcher />
                 </div>
             </div>
         </div>
