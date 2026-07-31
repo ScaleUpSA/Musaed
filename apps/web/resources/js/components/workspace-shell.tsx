@@ -52,7 +52,7 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
                 </Button>
             </div>
             <div className="px-4 pt-5 pb-2">
-                <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold tracking-[0.16em] uppercase">{t('workspace.conversations')}</p>
+                <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold">{t('workspace.conversations')}</p>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-3">
                 <button

@@ -4,7 +4,7 @@
 
 Musaed is a self-hosted alternative to ChatGPT Work / Claude for Work, built for organisations whose staff are *not* technical. Employees never install an MCP server, never configure a model, never bring their own key. An administrator provisions all of it once, and everyone else sees a workspace that can chat, research, remember, browse, and produce real deliverables — decks, documents, spreadsheets, reports.
 
-> **Status: pre-alpha.** The architecture is settled and the scaffold is landing. Nothing here is usable yet.
+> **Status: pre-alpha.** The architecture is settled and the frontend scaffold is landing. Authentication, settings and the employee workspace shell are real; agent streaming and production runs are not connected yet.
 
 ## Why this exists
 
@@ -25,14 +25,16 @@ That gap is the product. Musaed is not another chat UI; the chat surface is the 
 
 ## What it looks like today
 
-Honest answer: like a signed-in shell. Authentication, settings and the application layout are in place; the workspace itself — chat, memory, artifacts, sandboxes — is Phase 1 and not built yet. These are the real screens, not mockups.
+The authentication surface and employee workspace are real screens, not mockups. The workspace transcript shown below is driven by a typed mock event source: the agent runtime does not stream yet, so the run is UI scaffolding rather than a working agent execution.
 
 | | |
 |---|---|
-| ![Sign-in](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
-| Sign in | The workspace shell, awaiting Phase 1 |
-
-![Profile settings](docs/screenshots/settings-profile.png)
+| ![Musaed sign-in in English](docs/screenshots/login-en.png) | ![Musaed sign-in in Arabic](docs/screenshots/login-ar.png) |
+| English sign-in | Arabic sign-in · RTL |
+| ![Musaed workspace in English](docs/screenshots/workspace-en.png) | ![Musaed workspace in Arabic](docs/screenshots/workspace-ar.png) |
+| English workspace · mock run | Arabic workspace · mock run · RTL |
+| ![Musaed workspace in English dark mode](docs/screenshots/workspace-en-dark.png) | ![Musaed workspace in Arabic dark mode](docs/screenshots/workspace-ar-dark.png) |
+| English workspace · dark mode | Arabic workspace · dark mode · RTL |
 
 ## Architecture in one picture
 
