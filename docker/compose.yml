@@ -52,8 +52,8 @@ services:
       dockerfile: apps/agent/Dockerfile
     environment:
       PORT: 3001
-      AGENT_RUN_ROOT: /var/lib/musaed/runs
-      LITELLM_URL: http://litellm:4000
+      AGENT_RUN_ROOT: ${AGENT_RUN_ROOT:-/var/lib/musaed/runs}
+      LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
     ports:
       - "${AGENT_PORT:-3001}:3001"
     depends_on:
