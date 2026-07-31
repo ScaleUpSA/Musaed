@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\RunController;
+use Illuminate\Foundation\Http\Middleware\TrimStrings;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -48,7 +49,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::post('internal/runs/events', [RunController::class, 'callback'])
-    ->withoutMiddleware([ValidateCsrfToken::class])
+    ->withoutMiddleware([ValidateCsrfToken::class, TrimStrings::class])
     ->name('runs.callback');
 
 require __DIR__.'/settings.php';
