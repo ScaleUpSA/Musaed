@@ -12,7 +12,7 @@ Route::post('locale', [LocaleController::class, 'update'])->name('locale.update'
 
 Route::middleware(['auth'])->group(function () {
     Route::get('workspace', function () {
-        return Inertia::render('dashboard');
+        return Inertia::render('workspace');
     })->name('workspace');
 
     Route::get('dashboard', function () {
