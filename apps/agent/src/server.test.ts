@@ -1,14 +1,20 @@
+import { generateKeyPairSync, sign } from "node:crypto";
 import { existsSync, lstatSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { canonicalizeRunEnvelope, type RunEnvelope } from "@musaed/contracts";
 import { type AgentConfig, loadAgentConfig } from "./config.js";
 import { buildServer } from "./server.js";
 import { prepareRun } from "./run.js";
 
-const envelope = {
+const keyPair = generateKeyPairSync("ed25519");
+const publicKey = keyPair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("base64");
+const privateKey = keyPair.privateKey;
+
+const claims = {
   runId: "run-1",
   userId: "user-1",
   groupId: "group-1",
@@ -22,7 +28,7 @@ const envelope = {
   litellmVirtualKey: "sk-virtual-run",
   sandbox: {
     enabled: false,
-    cpuLimit: 1,
+    cpuLimitMillicores: 1_000,
     memoryLimitMb: 1024,
     pidsLimit: 64,
   },
@@ -33,13 +39,25 @@ const envelope = {
   },
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
-  signature: "test-signature",
 };
+
+const signEnvelope = (value: typeof claims): RunEnvelope => ({
+  ...value,
+  signature: sign(
+    null,
+    Buffer.from(canonicalizeRunEnvelope(value)),
+    privateKey,
+  ).toString("base64url"),
+});
+
+const envelope = signEnvelope(claims);
 
 const createConfig = (agentRunRoot: string): AgentConfig => ({
   port: 3001,
   agentRunRoot,
   litellmUrl: "http://litellm:4000",
+  envelopePublicKey: publicKey,
+  envelopeClockSkewMs: 30_000,
 });
 
 describe("agent service", () => {
@@ -70,12 +88,15 @@ describe("agent service", () => {
     const extraPropertyResponse = await app.inject({
       method: "POST",
       url: "/runs/prepare",
-      payload: { ...envelope, unexpected: true },
+        payload: { ...envelope, unexpected: true },
     });
     const numericStringResponse = await app.inject({
       method: "POST",
       url: "/runs/prepare",
-      payload: { ...envelope, sandbox: { ...envelope.sandbox, cpuLimit: "1" } },
+      payload: {
+        ...envelope,
+        sandbox: { ...envelope.sandbox, cpuLimitMillicores: "1000" },
+      },
     });
     const stringArrayResponse = await app.inject({
       method: "POST",
@@ -116,22 +137,22 @@ describe("agent service", () => {
       const response = await app.inject({
         method: "POST",
         url: "/runs/prepare",
-        payload: {
-          ...envelope,
+        payload: signEnvelope({
+          ...claims,
           workingDirectory: "/root/.pi",
           agentDirectory: join(root, "agent"),
-        },
+        }),
       });
 
       expect(response.statusCode).toBe(400);
       expect(response.json().code).toBe("RUN_PATH_OUTSIDE_ROOT");
 
       await expect(
-        prepareRun({
-          ...envelope,
+        prepareRun(signEnvelope({
+          ...claims,
           workingDirectory: join(root, "..", "outside"),
           agentDirectory: join(root, "agent"),
-        }, createConfig(root)),
+        }), createConfig(root)),
       ).rejects.toThrow("Path must be inside AGENT_RUN_ROOT");
     } finally {
       await app.close();
@@ -149,11 +170,11 @@ describe("agent service", () => {
       const response = await app.inject({
         method: "POST",
         url: "/runs/prepare",
-        payload: {
-          ...envelope,
+        payload: signEnvelope({
+          ...claims,
           workingDirectory: join(root, "workspace"),
           agentDirectory: linked,
-        },
+        }),
       });
 
       expect(response.statusCode).toBe(400);
@@ -173,11 +194,11 @@ describe("agent service", () => {
       const response = await app.inject({
         method: "POST",
         url: "/runs/prepare",
-        payload: {
-          ...envelope,
+        payload: signEnvelope({
+          ...claims,
           workingDirectory: join(rootFile, "workspace"),
           agentDirectory: join(rootFile, "agent"),
-        },
+        }),
       });
 
       expect(response.statusCode).toBe(500);
@@ -193,15 +214,17 @@ describe("agent service", () => {
         AGENT_RUN_ROOT: "/tmp/musaed-runs",
         LITELLM_URL: "http://litellm:4000",
       }),
-    ).toThrow("AGENT_ENVELOPE_PUBLIC_KEY is required in production");
+    ).toThrow("AGENT_ENVELOPE_PUBLIC_KEY is required");
     expect(() =>
       loadAgentConfig({
         AGENT_RUN_ROOT: "/tmp/musaed-runs",
+        AGENT_ENVELOPE_PUBLIC_KEY: publicKey,
       }),
     ).toThrow("LITELLM_URL is required");
     expect(() =>
       loadAgentConfig({
         LITELLM_URL: "http://litellm:4000",
+        AGENT_ENVELOPE_PUBLIC_KEY: publicKey,
       }),
     ).toThrow("AGENT_RUN_ROOT is required");
   });

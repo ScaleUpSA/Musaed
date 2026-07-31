@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'agent' => [
+        'envelope_private_key' => env('AGENT_ENVELOPE_PRIVATE_KEY'),
+        'envelope_lifetime_seconds' => (int) env('RUN_ENVELOPE_LIFETIME_SECONDS', 300),
+    ],
+
 ];

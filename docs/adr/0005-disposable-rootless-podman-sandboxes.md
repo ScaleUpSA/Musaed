@@ -11,11 +11,15 @@ Computer use, tool execution and artifact generation all run model-directed code
 One disposable rootless Podman container per run, non-persistent by default, with a privileged **broker** owning the entire lifecycle: create, inspect, exec, copy, stop, remove, reconcile.
 
 - Self-built, digest-pinned image: Chromium + Xvfb + x11vnc + noVNC. noVNC for live view and human takeover; CDP for automation.
-- ~2 vCPU / 3 GiB interactive, ~1 vCPU / 1–2 GiB headless. 15–30 minute idle expiry.
+- ~2000 millicores / 3 GiB interactive, ~1000 millicores / 1–2 GiB headless.
+  15–30 minute idle expiry.
 - `no-new-privileges`, dropped capabilities, seccomp/AppArmor, read-only rootfs where practical, CPU/RAM/PID ceilings.
 - Deny-by-default egress through a CONNECT-proxy allow-list; metadata endpoints, RFC1918, link-local, host gateway and SMTP blocked.
 - Tagged with tenant/user/run/expiry; a reconciler garbage-collects orphans.
 - Artifacts leave through the broker to object storage; no long-lived storage credentials inside the container.
+- CPU requests use integer millicores throughout the broker contract (`1000` =
+  one CPU, `1500` = one and a half CPUs); no whole-CPU conversion occurs at the
+  boundary.
 
 **The agent never receives a container socket.** It gets an opaque handle and a brokered exec channel.
 

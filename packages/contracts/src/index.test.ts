@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { canonicalizeJson } from "./index.js";
 import type { ToolPolicyDecision } from "./index.js";
 import type { RunEnvelope } from "./index.js";
 
@@ -28,7 +29,7 @@ describe("contracts", () => {
       litellmVirtualKey: "sk-virtual-run",
       sandbox: {
         enabled: true,
-        cpuLimit: 2,
+        cpuLimitMillicores: 1_500,
         memoryLimitMb: 3072,
         pidsLimit: 128,
       },
@@ -43,5 +44,19 @@ describe("contracts", () => {
     };
 
     expect(JSON.parse(JSON.stringify(envelope))).toEqual(envelope);
+  });
+
+  it("canonicalizes UTF-8 byte ordering and string escaping", () => {
+    const canonical = canonicalizeJson({
+      "\u{10000}": 1,
+      "\u{e000}": 2,
+      value: "😀\u0001",
+    });
+
+    expect(canonical.indexOf('"value"')).toBeLessThan(canonical.indexOf('"\u{e000}"'));
+    expect(canonical.indexOf('"\u{e000}"')).toBeLessThan(
+      canonical.indexOf('"\u{10000}"'),
+    );
+    expect(canonical).toContain('"value":"😀\\u0001"');
   });
 });

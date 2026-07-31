@@ -4,8 +4,7 @@ export type RunId = string;
 
 const nonEmptyString = () => Type.String({ minLength: 1 });
 
-export const RunEnvelopeSchema = Type.Object(
-  {
+const runEnvelopeProperties = {
     runId: nonEmptyString(),
     userId: nonEmptyString(),
     groupId: nonEmptyString(),
@@ -20,8 +19,8 @@ export const RunEnvelopeSchema = Type.Object(
     sandbox: Type.Object(
       {
         enabled: Type.Boolean(),
-        cpuLimit: Type.Number({ exclusiveMinimum: 0 }),
-        memoryLimitMb: Type.Number({ exclusiveMinimum: 0 }),
+        cpuLimitMillicores: Type.Integer({ exclusiveMinimum: 0 }),
+        memoryLimitMb: Type.Integer({ exclusiveMinimum: 0 }),
         pidsLimit: Type.Integer({ exclusiveMinimum: 0 }),
       },
       { additionalProperties: false },
@@ -36,18 +35,71 @@ export const RunEnvelopeSchema = Type.Object(
     ),
     policyVersion: nonEmptyString(),
     expiresAt: Type.String({ format: "date-time" }),
-    signature: nonEmptyString(),
-  },
+};
+
+export const RunEnvelopeSchema = Type.Object(
+  { ...runEnvelopeProperties, signature: nonEmptyString() },
+  { additionalProperties: false },
+);
+
+export const RunEnvelopeRequestSchema = Type.Object(
+  { ...runEnvelopeProperties, signature: Type.Optional(Type.String()) },
   { additionalProperties: false },
 );
 
 export type RunEnvelope = Static<typeof RunEnvelopeSchema>;
 
+const compareUtf8Bytes = (left: string, right: string): number => {
+  const leftBytes = new TextEncoder().encode(left);
+  const rightBytes = new TextEncoder().encode(right);
+  const length = Math.min(leftBytes.length, rightBytes.length);
+
+  for (let index = 0; index < length; index += 1) {
+    if (leftBytes[index] !== rightBytes[index]) {
+      return leftBytes[index] - rightBytes[index];
+    }
+  }
+
+  return leftBytes.length - rightBytes.length;
+};
+
+export const canonicalizeJson = (value: unknown): string => {
+  if (value === null || typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isInteger(value)) {
+      throw new TypeError("Canonical JSON can contain only integer numbers");
+    }
+
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalizeJson).join(",")}]`;
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => compareUtf8Bytes(left, right))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalizeJson(entry)}`);
+
+    return `{${entries.join(",")}}`;
+  }
+
+  throw new TypeError("Canonical JSON cannot contain this value");
+};
+
+export const canonicalizeRunEnvelope = (
+  envelope: Omit<RunEnvelope, "signature">,
+): string => canonicalizeJson(envelope);
+
 export const SandboxRequestSchema = Type.Object(
   {
     runId: nonEmptyString(),
     image: nonEmptyString(),
-    cpuLimit: Type.Number({ exclusiveMinimum: 0, maximum: 64 }),
+    cpuLimitMillicores: Type.Integer({ exclusiveMinimum: 0, maximum: 64_000 }),
     memoryLimitMb: Type.Number({ exclusiveMinimum: 16, maximum: 65_536 }),
   },
   { additionalProperties: false },

@@ -170,7 +170,7 @@ One disposable rootless Podman container per computer-use run. The broker owns t
 
 - digest-pinned, self-built image: Chromium + Xvfb + x11vnc + noVNC
 - noVNC for live view and human takeover; CDP for automation
-- ~2 vCPU / 3 GiB interactive, ~1 vCPU / 1–2 GiB headless
+- ~2000 millicores / 3 GiB interactive, ~1000 millicores / 1–2 GiB headless
 - deny-by-default egress through a CONNECT-proxy allow-list; metadata endpoints, RFC1918, link-local and SMTP blocked
 - `no-new-privileges`, dropped capabilities, read-only rootfs where practical, seccomp/AppArmor
 - 15–30 minute idle expiry, tagged with tenant/user/run/expiry, reconciler garbage-collects orphans

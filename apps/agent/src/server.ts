@@ -1,8 +1,9 @@
 import Fastify from "fastify";
 
-import { RunEnvelopeSchema, type RunEnvelope } from "@musaed/contracts";
+import { RunEnvelopeRequestSchema } from "@musaed/contracts";
 
 import { loadAgentConfig, type AgentConfig } from "./config.js";
+import { verifyRunEnvelope } from "./envelope.js";
 import { prepareRun } from "./run.js";
 
 export const buildServer = (config: AgentConfig) => {
@@ -18,10 +19,10 @@ export const buildServer = (config: AgentConfig) => {
 
   app.get("/healthz", async () => ({ status: "ok", service: "agent" }));
 
-  app.post<{ Body: RunEnvelope }>(
+  app.post(
     "/runs/prepare",
-    { schema: { body: RunEnvelopeSchema } },
-    async (request) => prepareRun(request.body, config),
+    { schema: { body: RunEnvelopeRequestSchema } },
+    async (request) => prepareRun(verifyRunEnvelope(request.body, config), config),
   );
 
   return app;

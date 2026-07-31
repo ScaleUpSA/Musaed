@@ -24,11 +24,20 @@ Define the envelope and event stream in `packages/contracts`: run/user/group ide
 
 `POST /runs` authenticates the user, resolves group policy, mints a short-lived signed envelope, persists a `runs` row, and dispatches to the agent runtime.
 
+**Implemented in this phase:** Ed25519 signing in Laravel, canonical envelope
+serialization, unconditional Node verification, expiry enforcement and
+cross-language verification coverage. The run persistence, policy resolution
+and dispatch endpoint remain to be built.
+
 **Done when:** an authenticated request produces a persisted run and a signed envelope; an unauthenticated one is rejected; the runtime cryptographically verifies the signature and rejects expired envelopes; **a test asserts no provider key appears anywhere in the envelope**.
 
 ## 4. Agent runtime constructs an isolated pi session
 
 Verify the envelope, then build a pi session with explicit `cwd` and `agentDir`, `AuthStorage.inMemory()`, `SettingsManager.inMemory()`, `modelsPath: null`, discovery disabled, and a programmatically registered LiteLLM provider using the run's virtual key.
+
+**Implemented in this phase:** the runtime requires its public verification key
+in every environment and refuses to construct a session until signature and
+expiry checks pass.
 
 **Done when:** a run completes against LiteLLM; a test proves the session reads nothing from `~/.pi` and writes nothing outside its run directory; two concurrent runs with different envelopes do not observe each other's models, credentials or files.
 
