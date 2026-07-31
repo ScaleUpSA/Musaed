@@ -4,8 +4,7 @@ export type RunId = string;
 
 const nonEmptyString = () => Type.String({ minLength: 1 });
 
-export const RunEnvelopeSchema = Type.Object(
-  {
+const runEnvelopeProperties = {
     runId: nonEmptyString(),
     userId: nonEmptyString(),
     groupId: nonEmptyString(),
@@ -36,12 +35,51 @@ export const RunEnvelopeSchema = Type.Object(
     ),
     policyVersion: nonEmptyString(),
     expiresAt: Type.String({ format: "date-time" }),
-    signature: nonEmptyString(),
-  },
+};
+
+export const RunEnvelopeSchema = Type.Object(
+  { ...runEnvelopeProperties, signature: nonEmptyString() },
+  { additionalProperties: false },
+);
+
+export const RunEnvelopeRequestSchema = Type.Object(
+  { ...runEnvelopeProperties, signature: Type.Optional(nonEmptyString()) },
   { additionalProperties: false },
 );
 
 export type RunEnvelope = Static<typeof RunEnvelopeSchema>;
+
+export const canonicalizeJson = (value: unknown): string => {
+  if (value === null || typeof value === "string" || typeof value === "boolean") {
+    return JSON.stringify(value);
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError("Canonical JSON cannot contain non-finite numbers");
+    }
+
+    return JSON.stringify(value);
+  }
+
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalizeJson).join(",")}]`;
+  }
+
+  if (typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalizeJson(entry)}`);
+
+    return `{${entries.join(",")}}`;
+  }
+
+  throw new TypeError("Canonical JSON cannot contain this value");
+};
+
+export const canonicalizeRunEnvelope = (
+  envelope: Omit<RunEnvelope, "signature">,
+): string => canonicalizeJson(envelope);
 
 export const SandboxRequestSchema = Type.Object(
   {

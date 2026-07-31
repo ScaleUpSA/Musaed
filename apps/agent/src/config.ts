@@ -2,7 +2,8 @@ export interface AgentConfig {
   port: number;
   agentRunRoot: string;
   litellmUrl: string;
-  envelopePublicKey?: string;
+  envelopePublicKey: string;
+  envelopeClockSkewMs: number;
 }
 
 const required = (env: NodeJS.ProcessEnv, name: string): string => {
@@ -25,8 +26,12 @@ const port = (env: NodeJS.ProcessEnv): number => {
 
 export const loadAgentConfig = (env: NodeJS.ProcessEnv): AgentConfig => {
   const envelopePublicKey = env.AGENT_ENVELOPE_PUBLIC_KEY;
-  if (env.NODE_ENV === "production" && !envelopePublicKey) {
-    throw new Error("AGENT_ENVELOPE_PUBLIC_KEY is required in production");
+  if (!envelopePublicKey) {
+    throw new Error("AGENT_ENVELOPE_PUBLIC_KEY is required");
+  }
+  const clockSkewSeconds = Number(env.AGENT_ENVELOPE_CLOCK_SKEW_SECONDS ?? 30);
+  if (!Number.isInteger(clockSkewSeconds) || clockSkewSeconds < 0) {
+    throw new Error("AGENT_ENVELOPE_CLOCK_SKEW_SECONDS must be a non-negative integer");
   }
 
   const litellmUrl = required(env, "LITELLM_URL");
@@ -39,5 +44,6 @@ export const loadAgentConfig = (env: NodeJS.ProcessEnv): AgentConfig => {
     agentRunRoot: required(env, "AGENT_RUN_ROOT"),
     litellmUrl,
     envelopePublicKey,
+    envelopeClockSkewMs: clockSkewSeconds * 1000,
   };
 };

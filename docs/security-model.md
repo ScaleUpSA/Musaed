@@ -57,6 +57,22 @@ flowchart TB
 
 Authority only ever flows downward, and only through the envelope. Nothing in Zone 4 can widen what Zone 2 is permitted to do — which is why a prompt injection reaching the model is a contained event rather than a breach.
 
+### Envelope signing
+
+Laravel signs the envelope with Ed25519 using `AGENT_ENVELOPE_PRIVATE_KEY`;
+the Node runtime holds only `AGENT_ENVELOPE_PUBLIC_KEY`. The private key stays
+in control-plane custody and is never sent to the runtime, browser, sandbox or
+logs. The runtime requires the public key in every environment and verifies the
+signature before reading paths, registering models or constructing a pi
+session.
+
+The signature covers canonical JSON of every envelope field except
+`signature`: object keys are sorted lexicographically at every level, arrays
+keep their order, and the compact UTF-8 JSON leaves Unicode and `/` unescaped.
+The signature is base64url without padding. Envelopes use a five-minute
+configured lifetime and the runtime permits only an explicit 30-second clock
+skew before rejecting them.
+
 ## Threats we design against
 
 **Prompt injection leading to tool abuse.** A page or document tells the agent to exfiltrate data or call a destructive tool. Mitigations: envelope-scoped tool allow-lists, `tool_call` hooks that block, approval gates on sensitive tools, deny-by-default egress, and the fact that the agent has no ambient credentials to steal.
