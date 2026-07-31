@@ -2,13 +2,13 @@ import {
     CheckCircle2,
     ChevronRight,
     CircleDot,
+    CircleStop,
     FileText,
     LoaderCircle,
     PanelRightClose,
     PanelRightOpen,
     Plus,
     Send,
-    Square,
     Wrench,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -171,23 +171,16 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
     return (
         <section className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
-                <div>
+                <div className="flex items-center gap-3">
                     <h1 className="font-semibold">{t('workspace.conversation_title')}</h1>
-                    <p className="text-muted-foreground text-xs">{t('workspace.mock_started')}</p>
-                </div>
-                <div className="flex items-center gap-2">
                     <RunStatus state={state} />
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={!running}
-                        title={t('workspace.cancel_unavailable')}
-                        aria-label={t('workspace.cancel_run')}
-                    >
-                        <Square />
+                </div>
+                <span title={t('workspace.cancel_unavailable')}>
+                    <Button variant="outline" size="sm" disabled aria-label={t('workspace.cancel_run')}>
+                        <CircleStop />
                         <span className="hidden sm:inline">{t('workspace.cancel_run')}</span>
                     </Button>
-                </div>
+                </span>
             </div>
 
             <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">

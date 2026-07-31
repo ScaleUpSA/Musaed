@@ -16,12 +16,12 @@ class LocaleTest extends TestCase
 
         $this->actingAs($user)
             ->withSession(['locale' => 'en'])
-            ->get('/dashboard')
+            ->get('/workspace')
             ->assertSee('<html lang="en" dir="ltr">', false);
 
         $this->actingAs($user)
             ->withSession(['locale' => 'ar'])
-            ->get('/dashboard')
+            ->get('/workspace')
             ->assertSee('<html lang="ar" dir="rtl">', false);
     }
 
