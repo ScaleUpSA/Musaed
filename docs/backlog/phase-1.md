@@ -39,8 +39,10 @@ Verify the envelope, then build a pi session with explicit `cwd` and `agentDir`,
 **Implemented in this phase:** the runtime requires its public verification key
 in every environment and refuses to construct a session until signature and
 expiry checks pass. The current model boundary is a clearly named
-`ClearlyFakeModelProvider`; no external provider call is made until provider
-selection and credentials are configured.
+`completeFakeResponse`; no external provider call is made until provider
+selection and credentials are configured. The current LiteLLM value is
+explicitly fake (`fake-litellm-key-*`), not a working virtual key; real
+virtual-key minting arrives with provider integration.
 
 **Done when:** a run completes against LiteLLM; a test proves the session reads nothing from `~/.pi` and writes nothing outside its run directory; two concurrent runs with different envelopes do not observe each other's models, credentials or files.
 

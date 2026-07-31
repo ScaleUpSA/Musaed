@@ -27,8 +27,8 @@ import { Link, router, usePage } from '@inertiajs/react';
 
 type Conversation = {
     id: string;
-    title: string;
-    preview: string;
+    title: string | null;
+    preview: string | null;
 };
 
 export function ConversationRail({ conversations, selectedId, onSelect, onNew, collapsed, onToggle }: { conversations: Conversation[]; selectedId: string | null; onSelect: (id: string) => void; onNew: () => void; collapsed: boolean; onToggle: () => void }) {
@@ -38,9 +38,9 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
     return (
         <aside className="bg-surface-subtle border-border/80 flex min-h-0 flex-col border-e">
             <div className={cn('border-border/80 flex items-center gap-2 border-b py-5', collapsed ? 'flex-col px-2' : 'justify-between px-4')}>
-                {!collapsed && <Link href="/workspace" className="flex min-w-0 items-center">
+                <Link href="/workspace" className={cn('flex min-w-0 items-center', collapsed && 'justify-center')}>
                     <AppLogo />
-                </Link>}
+                </Link>
                 <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onNew} aria-label={t('workspace.new_conversation')}>
                     <Plus className="size-4" />
                 </Button>
@@ -52,11 +52,13 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
                 <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold">{t('workspace.conversations')}</p>
             </div>}
             <div className={cn('min-h-0 flex-1 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
-                {!collapsed && conversations.map((conversation) => <button
+                {conversations.map((conversation) => <button
                     key={conversation.id}
                     type="button"
+                    aria-label={conversation.title ?? t('workspace.untitled_conversation')}
                     className={cn(
                         'group flex w-full items-start gap-3 rounded-xl p-3 text-start transition-colors',
+                        collapsed && 'justify-center px-2',
                         selectedId === conversation.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/70',
                     )}
                     onClick={() => onSelect(conversation.id)}
@@ -64,17 +66,17 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
                     <div className="bg-primary text-primary-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
                         <CircleDot className="size-4" />
                     </div>
-                    <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">{conversation.title.startsWith('workspace.') ? t(conversation.title) : conversation.title}</span>
-                        <span className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview.startsWith('workspace.') ? t(conversation.preview) : conversation.preview}</span>
-                    </span>
+                    {!collapsed && <span className="min-w-0">
+                        <span className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</span>
+                        {conversation.preview && <span className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</span>}
+                    </span>}
                 </button>)}
             </div>
             <div className={cn('border-border/80 border-t', collapsed ? 'p-2' : 'p-3')}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className={cn('h-auto w-full rounded-xl py-3 text-start', collapsed ? 'justify-center px-0 [&>div:last-child]:hidden' : 'justify-start gap-3 px-3')}>
-                            <UserInfo user={auth.user} />
+                        <Button variant="ghost" className={cn('h-auto w-full rounded-xl py-3 text-start', collapsed ? 'justify-center px-0' : 'justify-start gap-3 px-3')}>
+                            <UserInfo user={auth.user} showName={!collapsed} />
                             {!collapsed && <span className="text-muted-foreground ms-auto">•••</span>}
                         </Button>
                     </DropdownMenuTrigger>
@@ -142,7 +144,7 @@ function ToolActivity({ state }: { state: RunViewState }) {
     );
 }
 
-function ConversationView({ state, messages, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; onSubmit: (message: string) => void }) {
+function ConversationView({ state, messages, title, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; title: string | null; onSubmit: (message: string) => void }) {
     const t = useTranslations();
     const [draft, setDraft] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -177,7 +179,7 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
         <section className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
                 <div className="flex items-center gap-3">
-                    <h1 className="font-semibold">{t('workspace.conversation_title')}</h1>
+                    <h1 className="font-semibold">{title ?? t('workspace.untitled_conversation')}</h1>
                     <RunStatus state={state} />
                 </div>
                 <span title={t('workspace.cancel_unavailable')}>
@@ -292,18 +294,20 @@ function ArtifactPanel({ open, onToggle }: { open: boolean; onToggle: () => void
 export default function WorkspaceShell({
     state,
     messages,
+    conversationTitle,
     onSubmit,
     conversationId,
     conversations,
 }: {
     state: RunViewState;
     messages: { role: 'user' | 'assistant'; content: string }[];
+    conversationTitle: string | null;
     onSubmit: (message: string) => void;
     conversationId: string | null;
-    conversations: { id: string; title: string | null; message_count: number }[];
+    conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
 }) {
     const [selectedId, setSelectedId] = useState<string | null>(conversationId);
-    const [panelOpen, setPanelOpen] = useState(true);
+    const [panelOpen, setPanelOpen] = useState(false);
     const [railCollapsed, setRailCollapsed] = useState(
         () => typeof window !== 'undefined' && window.localStorage.getItem('musaed.rail-collapsed') === 'true',
     );
@@ -311,6 +315,12 @@ export default function WorkspaceShell({
     useEffect(() => {
         window.localStorage.setItem('musaed.rail-collapsed', String(railCollapsed));
     }, [railCollapsed]);
+
+    useEffect(() => {
+        if (state.tools.length > 0) {
+            setPanelOpen(true);
+        }
+    }, [state.tools.length]);
 
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -329,8 +339,8 @@ export default function WorkspaceShell({
                 <ConversationRail
                     conversations={conversations.map((item) => ({
                         id: item.id,
-                        title: item.title ?? 'workspace.conversation_title',
-                        preview: item.message_count > 0 ? 'workspace.conversation_preview' : 'workspace.empty_conversation',
+                        title: item.title,
+                        preview: item.preview,
                     }))}
                     selectedId={selectedId}
                     collapsed={railCollapsed}
@@ -341,7 +351,7 @@ export default function WorkspaceShell({
                     }}
                     onNew={() => setSelectedId(null)}
                 />
-                <ConversationView state={state} messages={messages} onSubmit={onSubmit} />
+                <ConversationView state={state} messages={messages} title={conversationTitle} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
             </div>
         </div>

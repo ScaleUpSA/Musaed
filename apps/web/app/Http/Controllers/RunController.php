@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Actions\ResolveRunPolicy;
+use App\Enums\RunStatus;
 use App\Http\Requests\StoreRunRequest;
 use App\Models\Run;
 use App\Models\RunEvent;
@@ -19,6 +20,7 @@ class RunController extends Controller
     {
         $user = $request->user();
         $callbackToken = bin2hex(random_bytes(32));
+        $resolved = $policy->resolve($user);
         $conversation = $request->filled('conversation_id')
             ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
             : $user->conversations()->create([
@@ -26,28 +28,23 @@ class RunController extends Controller
                 'title' => Str::limit($request->string('message')->toString(), 80, ''),
             ]);
 
-        $run = DB::transaction(function () use ($conversation, $user, $request, $policy, $callbackToken): Run {
+        $run = DB::transaction(function () use ($conversation, $user, $request, $resolved, $callbackToken): Run {
             $conversation->messages()->create([
                 'role' => 'user',
                 'content' => $request->string('message')->toString(),
             ]);
 
-            $resolved = $policy->resolve($user);
             $run = $conversation->runs()->create([
                 'id' => (string) Str::uuid(),
                 'user_id' => $user->id,
-                'status' => 'queued',
+                'status' => RunStatus::Queued,
                 'policy_version' => $resolved['policyVersion'],
                 'callback_token_hash' => hash('sha256', $callbackToken),
             ]);
 
-            $run->setRelation('resolved_policy', collect($resolved));
-
             return $run;
         });
 
-        /** @var array<string, mixed> $resolved */
-        $resolved = $run->getRelation('resolved_policy')->all();
         $envelope = $signer->mint([
             'runId' => $run->id,
             'userId' => (string) $user->id,
@@ -56,11 +53,11 @@ class RunController extends Controller
             'conversationId' => $conversation->id,
             'prompt' => $request->string('message')->toString(),
             'allowedModels' => $resolved['allowedModels'],
-            'workingDirectory' => "/var/lib/musaed/runs/{$run->id}/workspace",
-            'agentDirectory' => "/var/lib/musaed/runs/{$run->id}/agent",
+            'workingDirectory' => config('services.agent.run_root')."/{$run->id}/workspace",
+            'agentDirectory' => config('services.agent.run_root')."/{$run->id}/agent",
             'allowedTools' => $resolved['allowedTools'],
             'approvalRequiredTools' => $resolved['approvalRequiredTools'],
-            'litellmVirtualKey' => 'vk_'.bin2hex(random_bytes(24)),
+            'litellmVirtualKey' => 'fake-litellm-key-'.bin2hex(random_bytes(24)),
             'sandbox' => $resolved['sandbox'],
             'callbacks' => [
                 'eventsUrl' => config('services.agent.events_url'),
@@ -73,13 +70,13 @@ class RunController extends Controller
 
         $response = Http::timeout(10)->post(config('services.agent.url').'/runs/execute', $envelope);
         if ($response->failed()) {
-            $run->update(['status' => 'failed']);
+            $run->update(['status' => RunStatus::Failed]);
 
             return response()->json(['message' => 'Run dispatch failed.'], 502);
         }
 
-        if ($run->fresh()->status === 'queued') {
-            $run->update(['status' => 'running']);
+        if ($run->fresh()->status === RunStatus::Queued) {
+            $run->update(['status' => RunStatus::Running]);
         }
 
         return response()->json([
@@ -116,7 +113,7 @@ class RunController extends Controller
             || ! is_string($callbackToken)
             || $run->callback_token_hash === null
             || ! hash_equals($run->callback_token_hash, hash('sha256', $callbackToken))
-            || ! in_array($run->status, ['queued', 'running'], true)
+            || ! $run->status->isActive()
         ) {
             return $this->callbackRejected();
         }
@@ -129,12 +126,12 @@ class RunController extends Controller
         ]);
 
         if ($payload['type'] === 'run.started') {
-            $run->update(['status' => 'running']);
+            $run->update(['status' => RunStatus::Running]);
         } elseif ($payload['type'] === 'run.completed') {
-            $run->update(['status' => 'completed']);
+            $run->update(['status' => RunStatus::Completed]);
             $this->persistAssistantMessage($run);
         } elseif ($payload['type'] === 'run.failed') {
-            $run->update(['status' => 'failed']);
+            $run->update(['status' => RunStatus::Failed]);
         }
 
         return response()->json(['accepted' => true, 'event_id' => $event->id], 202);
@@ -147,10 +144,6 @@ class RunController extends Controller
 
     private function persistAssistantMessage(Run $run): void
     {
-        if ($run->conversation->messages()->where('role', 'assistant')->where('created_at', '>=', $run->created_at)->exists()) {
-            return;
-        }
-
         $text = $run->events()
             ->where('type', 'assistant.delta')
             ->orderBy('sequence')

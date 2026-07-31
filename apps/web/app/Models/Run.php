@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\RunStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -13,6 +14,10 @@ class Run extends Model
     protected $keyType = 'string';
 
     protected $fillable = ['id', 'user_id', 'status', 'policy_version', 'callback_token_hash'];
+
+    protected $casts = [
+        'status' => RunStatus::class,
+    ];
 
     public function conversation(): BelongsTo
     {

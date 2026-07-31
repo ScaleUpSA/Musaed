@@ -15,6 +15,7 @@ const claims = {
   groupId: "group-1",
   workspaceId: "workspace-1",
   conversationId: "conversation-1",
+  prompt: "Summarize the request",
   allowedModels: ["gpt-4o-mini"],
   workingDirectory: "/var/lib/musaed/runs/run-cross-language/workspace",
   agentDirectory: "/var/lib/musaed/runs/run-cross-language/agent",

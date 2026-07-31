@@ -1,13 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ClearlyFakeModelProvider, type ModelProvider } from "./fake-provider.js";
+import { completeFakeResponse } from "./fake-provider.js";
 
-describe("ClearlyFakeModelProvider", () => {
-  it("uses the replaceable model provider boundary", async () => {
-    const provider: ModelProvider = new ClearlyFakeModelProvider();
+describe("completeFakeResponse", () => {
+  it("returns an obviously fake response", async () => {
     const chunks: string[] = [];
 
-    for await (const chunk of provider.complete("a request")) {
+    for await (const chunk of completeFakeResponse("a request")) {
       chunks.push(chunk);
     }
 

@@ -6,9 +6,10 @@ import { Head } from '@inertiajs/react';
 import type { AgentEvent } from '@musaed/contracts';
 
 type WorkspaceProps = {
-    conversations: { id: string; title: string | null; message_count: number }[];
+    conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
     conversation: {
         id: string;
+        title: string | null;
         messages: { role: 'user' | 'assistant'; content: string }[];
         run_id: string | null;
         events: AgentEvent[];
@@ -25,6 +26,7 @@ export default function Workspace({ conversations, conversation }: WorkspaceProp
             <WorkspaceShell
                 state={run.state}
                 messages={run.messages}
+                conversationTitle={conversation?.title ?? null}
                 onSubmit={run.startRun}
                 conversationId={conversation?.id ?? null}
                 conversations={conversations}

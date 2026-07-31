@@ -107,8 +107,7 @@ return [
         'title' => 'مساحة العمل',
         'new_conversation' => 'محادثة جديدة',
         'conversations' => 'المحادثات',
-        'conversation_title' => 'التخطيط للإطلاق',
-        'conversation_preview' => 'مراجعة خطة الإطلاق',
+        'untitled_conversation' => 'محادثة بلا عنوان',
         'no_conversation' => 'اختر محادثة للبدء.',
         'empty_conversation' => 'ستظهر محادثتك هنا.',
         'composer_placeholder' => 'اكتب رسالة إلى مساعد...',
@@ -135,7 +134,5 @@ return [
         'rail_expand' => 'توسيع شريط المحادثات',
         'no_selection_title' => 'لم تختر محادثة',
         'no_selection_description' => 'اختر محادثة من الشريط لعرض رسائلها.',
-        'mock_prompt' => 'لخّص خطة الإطلاق وحدد القرارات التي ما زلنا بحاجة إلى اتخاذها.',
-        'mock_started' => 'يراجع المساعد طلبك الآن.',
     ],
 ];

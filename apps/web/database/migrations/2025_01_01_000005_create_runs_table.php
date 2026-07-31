@@ -14,6 +14,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('status', 32)->default('queued');
             $table->string('policy_version');
+            $table->string('callback_token_hash', 64)->nullable();
             $table->timestamps();
             $table->index(['conversation_id', 'created_at']);
         });

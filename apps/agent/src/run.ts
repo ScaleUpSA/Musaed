@@ -8,10 +8,10 @@ import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 import { lstat, mkdir, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
-import type { RunEnvelope } from "@musaed/contracts";
+import type { AgentEvent, RunEnvelope } from "@musaed/contracts";
 
 import type { AgentConfig } from "./config.js";
-import { ClearlyFakeModelProvider } from "./fake-provider.js";
+import { completeFakeResponse } from "./fake-provider.js";
 
 export interface PreparedRun {
   runId: string;
@@ -144,16 +144,14 @@ export async function prepareRun(
 export async function executeRun(
   envelope: RunEnvelope,
   config: AgentConfig,
-  // eslint-disable-next-line no-unused-vars
-  emit: (...args: [Record<string, unknown>]) => Promise<void>,
+  emit: (event: AgentEvent) => Promise<void>,
 ): Promise<void> {
   const at = () => new Date().toISOString();
 
   try {
     await prepareRun(envelope, config);
     await emit({ type: "run.started", runId: envelope.runId, at: at() });
-    const provider = new ClearlyFakeModelProvider();
-    for await (const text of provider.complete(envelope.prompt ?? "the user's request")) {
+    for await (const text of completeFakeResponse(envelope.prompt)) {
       await emit({ type: "assistant.delta", runId: envelope.runId, text, at: at() });
     }
     await emit({ type: "run.completed", runId: envelope.runId, at: at() });

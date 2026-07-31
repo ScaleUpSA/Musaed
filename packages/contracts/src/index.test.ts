@@ -21,6 +21,7 @@ describe("contracts", () => {
       groupId: "group-1",
       workspaceId: "workspace-1",
       conversationId: "conversation-1",
+      prompt: "Summarize the request",
       allowedModels: ["gpt-4o-mini"],
       workingDirectory: "/tmp/workspace",
       agentDirectory: "/tmp/agent",

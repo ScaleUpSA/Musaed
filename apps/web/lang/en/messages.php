@@ -107,8 +107,7 @@ return [
         'title' => 'Workspace',
         'new_conversation' => 'New conversation',
         'conversations' => 'Conversations',
-        'conversation_title' => 'Launch planning',
-        'conversation_preview' => 'Review the rollout plan',
+        'untitled_conversation' => 'Untitled conversation',
         'no_conversation' => 'Select a conversation to get started.',
         'empty_conversation' => 'Your conversation will appear here.',
         'composer_placeholder' => 'Message Musaed...',
@@ -135,7 +134,5 @@ return [
         'rail_expand' => 'Expand conversation rail',
         'no_selection_title' => 'No conversation selected',
         'no_selection_description' => 'Choose a conversation from the rail to view its messages.',
-        'mock_prompt' => 'Summarize the rollout plan and call out the decisions we still need to make.',
-        'mock_started' => 'The assistant is reviewing your request.',
     ],
 ];

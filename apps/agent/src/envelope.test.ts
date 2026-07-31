@@ -25,6 +25,7 @@ const claims = {
   groupId: "group-1",
   workspaceId: "workspace-1",
   conversationId: "conversation-1",
+  prompt: "Summarize the request",
   allowedModels: ["gpt-4o-mini"],
   workingDirectory: "/tmp/musaed-run-workspace",
   agentDirectory: "/tmp/musaed-run-agent",

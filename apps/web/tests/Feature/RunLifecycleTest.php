@@ -78,7 +78,7 @@ class RunLifecycleTest extends TestCase
             'role' => 'assistant',
             'content' => 'A persisted answer.',
         ]);
-        $this->assertSame('completed', $run->fresh()->status);
+        $this->assertSame('completed', $run->fresh()->status->value);
     }
 
     public function test_callback_credentials_are_run_scoped_and_expire_on_completion(): void

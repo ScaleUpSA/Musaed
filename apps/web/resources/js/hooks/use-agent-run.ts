@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { initialRunViewState, reduceAgentEvent, type RunViewState } from '@/lib/workspace-events';
 import type { AgentEvent } from '@musaed/contracts';
@@ -34,12 +34,14 @@ export function useAgentRun(conversation: ConversationProps | null) {
     });
     const [messages, setMessages] = useState<PersistedMessage[]>(conversation?.messages ?? []);
     const [runId, setRunId] = useState<string | null>(conversation?.run_id ?? null);
-    const [lastEventId, setLastEventId] = useState(conversation?.events.length ?? 0);
+    const cursorRef = useRef(conversation?.events.length ?? 0);
+    const statusRef = useRef(state.status);
+    statusRef.current = state.status;
 
     useEffect(() => {
         setMessages(conversation?.messages ?? []);
         setRunId(conversation?.run_id ?? null);
-        setLastEventId(conversation?.events.length ?? 0);
+        cursorRef.current = conversation?.events.length ?? 0;
         setState(
             conversation
                 ? conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState)
@@ -48,12 +50,12 @@ export function useAgentRun(conversation: ConversationProps | null) {
     }, [conversation]);
 
     useEffect(() => {
-        if (!runId) {
+        if (!runId || statusRef.current === 'completed' || statusRef.current === 'failed') {
             return;
         }
 
         const poll = async () => {
-            const response = await fetch(`/runs/${runId}/events?after=${lastEventId}`, {
+            const response = await fetch(`/runs/${runId}/events?after=${cursorRef.current}`, {
                 headers: { Accept: 'application/json' },
                 credentials: 'same-origin',
             });
@@ -71,17 +73,21 @@ export function useAgentRun(conversation: ConversationProps | null) {
                 return;
             }
 
-            events.filter(isAgentEvent).forEach((event) => setState((current) => reduceAgentEvent(current, event)));
+            const agentEvents = events.filter(isAgentEvent);
+            agentEvents.forEach((event) => setState((current) => reduceAgentEvent(current, event)));
             if (typeof data.last_event_id === 'number') {
-                setLastEventId(data.last_event_id);
+                cursorRef.current = data.last_event_id;
+            }
+            if (agentEvents.some((event) => event.type === 'run.completed' || event.type === 'run.failed')) {
+                window.clearInterval(interval);
             }
         };
 
-        void poll();
         const interval = window.setInterval(() => void poll(), 500);
+        void poll();
 
         return () => window.clearInterval(interval);
-    }, [runId, lastEventId]);
+    }, [runId]);
 
     const startRun = async (message: string) => {
         const response = await fetch('/runs', {
@@ -105,7 +111,7 @@ export function useAgentRun(conversation: ConversationProps | null) {
 
         setMessages((current) => [...current, { role: 'user', content: message }]);
         setState(initialRunViewState);
-        setLastEventId(0);
+        cursorRef.current = 0;
         if (typeof data.run_id === 'string') {
             setRunId(data.run_id);
         }

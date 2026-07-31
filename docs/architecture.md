@@ -117,10 +117,11 @@ The runtime pushes rather than Laravel polling because the executor already
 knows exactly when an event occurs and the callback coordinates are part of
 the signed envelope.
 
-The provider call is behind the runtime's `ModelProvider` boundary and is
-currently implemented by `ClearlyFakeModelProvider`. It makes no external
-model request and can be replaced when a provider is selected without
-changing the control-plane or browser contracts.
+The provider call is currently represented by the runtime's
+`completeFakeResponse` generator. It makes no external model request. When a
+provider is selected, real per-run virtual-key minting replaces the clearly
+fake `fake-litellm-key-*` envelope value as a configuration and provider
+integration change, without changing the control-plane or browser contracts.
 
 ## The run envelope
 
