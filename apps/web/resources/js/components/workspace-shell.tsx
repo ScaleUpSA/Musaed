@@ -212,7 +212,7 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
                     {messages.map((message, index) => (
                         <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
-                            <div className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,42rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
+                            <div className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
                                 {message}
                             </div>
                         </div>
