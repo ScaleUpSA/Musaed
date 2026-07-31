@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 
 import { useTranslations } from '@/hooks/use-translations';
-import { createMockAgentEventSource, initialRunViewState, reduceAgentEvent, type RunViewState } from '@/lib/workspace-events';
+import { createMockAgentEventSource } from '@/lib/mock-agent-events';
+import { initialRunViewState, reduceAgentEvent, type RunViewState } from '@/lib/workspace-events';
 import type { SharedData } from '@/types';
 import { usePage } from '@inertiajs/react';
 
