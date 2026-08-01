@@ -40,6 +40,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       REDIS_HOST: redis
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-development-only}
       AGENT_URL: http://agent:3001
       AGENT_EVENTS_URL: http://web:8000/internal/runs/events
       AGENT_AUDIT_URL: http://web:8000/internal/runs/events

@@ -61,7 +61,9 @@ class RunController extends Controller
             'agentDirectory' => config('services.agent.run_root')."/{$run->id}/agent",
             'allowedTools' => $resolved['allowedTools'],
             'approvalRequiredTools' => $resolved['approvalRequiredTools'],
-            'litellmVirtualKey' => 'fake-litellm-key-'.bin2hex(random_bytes(24)),
+            'litellmVirtualKey' => $resolved['modelImplementation'] === 'litellm'
+                ? config('services.litellm.master_key')
+                : 'fake-litellm-key-'.bin2hex(random_bytes(24)),
             'sandbox' => $resolved['sandbox'],
             'callbacks' => [
                 'eventsUrl' => config('services.agent.events_url'),

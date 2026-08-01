@@ -45,6 +45,10 @@ return [
         'envelope_lifetime_seconds' => (int) env('RUN_ENVELOPE_LIFETIME_SECONDS', 300),
     ],
 
+    'litellm' => [
+        'master_key' => env('LITELLM_MASTER_KEY', 'sk-local-development-only'),
+    ],
+
     'models' => [
         'catalogue' => [
             [
