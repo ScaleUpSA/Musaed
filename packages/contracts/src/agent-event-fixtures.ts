@@ -31,3 +31,12 @@ export const agentEventFixtures = [
     at: "2030-01-01T00:00:05.000Z",
   },
 ] as const satisfies readonly AgentEvent[];
+
+type AssertNever<T extends never> = T;
+
+type MissingAgentEventTypes = Exclude<
+  AgentEvent["type"],
+  (typeof agentEventFixtures)[number]["type"]
+>;
+
+export type AgentEventFixtureCoverage = AssertNever<MissingAgentEventTypes>;

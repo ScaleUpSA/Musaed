@@ -23,6 +23,7 @@ final class AgentEventValidator
 
         return Validator::make($payload, $rules + match ($payload['type']) {
             'assistant.delta' => [
+                // Laravel's `required` treats whitespace-only provider deltas as empty.
                 'text' => ['present', 'string'],
             ],
             'tool.called' => [
