@@ -144,6 +144,46 @@ class RunLifecycleTest extends TestCase
             && $request['duration'] === '300s');
     }
 
+    public function test_virtual_key_minting_failure_marks_run_failed_and_returns_a_readable_reason(): void
+    {
+        config([
+            'services.models.catalogue' => [
+                [
+                    'alias' => 'assistant',
+                    'litellm_model' => 'fake-model',
+                    'implementation' => 'fake',
+                    'enabled' => true,
+                    'label_en' => 'Musaed Placeholder',
+                    'label_ar' => 'مساعد تجريبي مؤقت',
+                ],
+                [
+                    'alias' => 'deepseek',
+                    'litellm_model' => 'deepseek',
+                    'implementation' => 'litellm',
+                    'enabled' => true,
+                    'label_en' => 'DeepSeek Chat',
+                    'label_ar' => 'ديب سيك للمحادثة',
+                ],
+            ],
+        ]);
+        (new ModelCatalogueSeeder)->run();
+
+        $user = User::factory()->create();
+        Http::fake([
+            'http://litellm.test/key/generate' => Http::response(['message' => 'unauthorized'], 401),
+        ]);
+
+        $response = $this->actingAs($user)->postJson('/runs', [
+            'message' => 'Minting failure',
+        ]);
+
+        $response->assertStatus(502)->assertJson(['message' => 'Model provider request failed (401).']);
+
+        $run = Run::firstOrFail();
+        $this->assertSame('failed', $run->fresh()->status->value);
+        $this->assertDatabaseMissing('run_events', ['run_id' => $run->id]);
+    }
+
     public function test_provider_failure_marks_run_failed_and_persists_the_readable_error(): void
     {
         $user = User::factory()->create();
@@ -167,6 +207,44 @@ class RunLifecycleTest extends TestCase
             'run_id' => $run->id,
             'type' => 'run.failed',
         ]);
+    }
+
+    public function test_callback_endpoint_accepts_the_contract_event_shapes(): void
+    {
+        $user = User::factory()->create();
+        $fixtures = json_decode(
+            file_get_contents(base_path('tests/Fixtures/agent-events.json')),
+            true,
+            flags: JSON_THROW_ON_ERROR,
+        );
+        $this->assertIsArray($fixtures);
+
+        foreach ($fixtures as $event) {
+            Http::fake(['http://agent.test/*' => Http::response(['status' => 'accepted'], 202)]);
+
+            $this->actingAs($user)->postJson('/runs', ['message' => 'Contract fixtures'])->assertAccepted();
+            $envelope = collect(Http::recorded())
+                ->last(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))[0]->data();
+            $run = Run::findOrFail($envelope['runId']);
+            $token = $envelope['callbacks']['callbackToken'];
+
+            $response = $this->withHeader('X-Run-Callback-Token', $token)
+                ->postJson('/internal/runs/events', [
+                    ...$event,
+                    'runId' => $run->id,
+                ]);
+
+            $this->assertSame(202, $response->status(), json_encode($event, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+        }
+
+        $this->withHeader('X-Run-Callback-Token', $token)
+            ->postJson('/internal/runs/events', [
+                'type' => 'assistant.delta',
+                'runId' => $run->id,
+                'at' => now()->toISOString(),
+            ])
+            ->assertUnauthorized()
+            ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
     }
 
     public function test_callback_credentials_are_run_scoped_and_expire_on_completion(): void

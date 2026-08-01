@@ -8,6 +8,7 @@ use App\Enums\RunStatus;
 use App\Http\Requests\StoreRunRequest;
 use App\Models\Run;
 use App\Models\RunEvent;
+use App\Support\AgentEvent\AgentEventValidator;
 use App\Support\RunEnvelope\RunEnvelopeSigner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -47,9 +48,15 @@ class RunController extends Controller
             return $run;
         });
 
-        $litellmVirtualKey = $resolved['modelImplementation'] === 'litellm'
-            ? $mintKey->mint($resolved['modelName'], (int) config('services.agent.envelope_lifetime_seconds'))
-            : 'fake-litellm-key-'.bin2hex(random_bytes(24));
+        try {
+            $litellmVirtualKey = $resolved['modelImplementation'] === 'litellm'
+                ? $mintKey->mint($resolved['modelName'], (int) config('services.agent.envelope_lifetime_seconds'))
+                : 'fake-litellm-key-'.bin2hex(random_bytes(24));
+        } catch (\RuntimeException $exception) {
+            $run->update(['status' => RunStatus::Failed]);
+
+            return response()->json(['message' => $exception->getMessage()], 502);
+        }
 
         $envelope = $signer->mint([
             'runId' => $run->id,
@@ -108,10 +115,10 @@ class RunController extends Controller
         ]);
     }
 
-    public function callback(Request $request): JsonResponse
+    public function callback(Request $request, AgentEventValidator $validator): JsonResponse
     {
         $payload = $request->json()->all();
-        if (! $this->isValidAgentEvent($payload)) {
+        if (! is_array($payload) || ! $validator->accepts($payload)) {
             return $this->callbackRejected();
         }
 
@@ -149,30 +156,6 @@ class RunController extends Controller
     private function callbackRejected(): JsonResponse
     {
         return response()->json(['code' => 'RUN_CALLBACK_REJECTED', 'message' => 'Run callback rejected.'], 401);
-    }
-
-    private function isValidAgentEvent(mixed $payload): bool
-    {
-        if (! is_array($payload)
-            || ! is_string($payload['type'] ?? null)
-            || ! is_string($payload['runId'] ?? null)
-            || ! is_string($payload['at'] ?? null)
-            || strtotime($payload['at']) === false
-        ) {
-            return false;
-        }
-
-        return match ($payload['type']) {
-            'run.started', 'run.completed' => true,
-            'assistant.delta' => is_string($payload['text'] ?? null),
-            'tool.called' => is_string($payload['toolName'] ?? null)
-                && is_string($payload['toolCallId'] ?? null),
-            'tool.completed' => is_string($payload['toolName'] ?? null)
-                && is_string($payload['toolCallId'] ?? null)
-                && is_bool($payload['isError'] ?? null),
-            'run.failed' => is_string($payload['error'] ?? null),
-            default => false,
-        };
     }
 
     private function persistAssistantMessage(Run $run): void
