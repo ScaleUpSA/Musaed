@@ -82,6 +82,28 @@ describe("streamModelResponse", () => {
     vi.unstubAllGlobals();
   });
 
+  it("ignores empty provider deltas", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          'data: {"choices":[{"delta":{"content":""}}]}\n\n' +
+            'data: {"choices":[{"delta":{"content":"content"}}]}\n\n' +
+            "data: [DONE]\n\n",
+          { headers: { "content-type": "text/event-stream" } },
+        ),
+      ),
+    );
+
+    const chunks: string[] = [];
+    for await (const chunk of streamModelResponse({ ...envelope, signature: "signature" }, config)) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(["content"]);
+    vi.unstubAllGlobals();
+  });
+
   it("rejects a stream that ends without a completion marker", async () => {
     vi.stubGlobal(
       "fetch",

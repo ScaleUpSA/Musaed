@@ -25,8 +25,9 @@ final class ResolveRunPolicy
     public function resolve(User $user, ?string $requestedAlias = null): array
     {
         $models = ModelCatalogue::query()->where('enabled', true)->orderBy('id')->get();
+        // A configured real model is the default; the fake entry is only the keyless fallback.
         $selected = $requestedAlias === null
-            ? $models->first()
+            ? $models->first(static fn (ModelCatalogue $model): bool => $model->implementation !== 'fake') ?? $models->first()
             : $models->firstWhere('alias', $requestedAlias);
 
         if ($selected === null) {

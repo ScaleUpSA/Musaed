@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { initialRunViewState, reduceAgentEvent, shouldStickToBottom } from './workspace-events';
+import { appendCompletedAssistantMessage, initialRunViewState, reduceAgentEvent, resolveMessageModelLabel, shouldStickToBottom } from './workspace-events';
 
 describe('reduceAgentEvent', () => {
     it('turns agent events into assistant and tool view state', () => {
@@ -45,5 +45,41 @@ describe('shouldStickToBottom', () => {
 
     it('does not yank the viewport when the user has scrolled up', () => {
         expect(shouldStickToBottom({ scrollTop: 100, clientHeight: 400, scrollHeight: 800 })).toBe(false);
+    });
+});
+
+describe('appendCompletedAssistantMessage', () => {
+    it('keeps both completed answers in conversation order', () => {
+        const firstAnswer = appendCompletedAssistantMessage(
+            [{ role: 'user', content: 'First question' }],
+            { ...initialRunViewState, status: 'completed', assistantText: 'First answer' },
+            'assistant',
+        );
+        const secondQuestion = [...firstAnswer, { role: 'user' as const, content: 'Second question' }];
+        const messages = appendCompletedAssistantMessage(
+            secondQuestion,
+            { ...initialRunViewState, status: 'completed', assistantText: 'Second answer' },
+            'deepseek',
+        );
+
+        expect(messages).toEqual([
+            { role: 'user', content: 'First question' },
+            { role: 'assistant', content: 'First answer', model_alias: 'assistant' },
+            { role: 'user', content: 'Second question' },
+            { role: 'assistant', content: 'Second answer', model_alias: 'deepseek' },
+        ]);
+    });
+});
+
+describe('resolveMessageModelLabel', () => {
+    it('resolves each message alias independently and leaves legacy messages unattributed', () => {
+        const models = [
+            { alias: 'assistant', label_en: 'Musaed Placeholder', label_ar: 'مساعد تجريبي مؤقت', implementation: 'fake' as const },
+            { alias: 'deepseek', label_en: 'DeepSeek Chat', label_ar: 'ديب سيك للمحادثة', implementation: 'litellm' as const },
+        ];
+
+        expect(resolveMessageModelLabel(models, 'assistant', 'en')).toBe('Musaed Placeholder');
+        expect(resolveMessageModelLabel(models, 'deepseek', 'en')).toBe('DeepSeek Chat');
+        expect(resolveMessageModelLabel(models, null, 'en')).toBeNull();
     });
 });

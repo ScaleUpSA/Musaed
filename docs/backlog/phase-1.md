@@ -42,8 +42,10 @@ expiry checks pass. The runtime now selects from a signed catalogue entry. The
 seeded `assistant` entry uses the clearly named `completeFakeResponse`
 implementation so no provider credential is needed. LiteLLM entries stream
 real chat completions when configured; the current LiteLLM value remains
-explicitly fake (`fake-litellm-key-*`), not a working virtual key. Real
-virtual-key minting arrives with provider integration.
+explicitly fake (`fake-litellm-key-*`), not a working virtual key. For real
+catalogue entries, Laravel now mints a short-lived LiteLLM virtual key scoped
+to the selected model and the run lifetime; the LiteLLM master key remains in
+control-plane custody.
 
 **Done when:** a run completes against the configured model implementation; a
 test proves the session reads nothing from `~/.pi` and writes nothing outside

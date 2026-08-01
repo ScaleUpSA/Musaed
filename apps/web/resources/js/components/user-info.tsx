@@ -13,10 +13,18 @@ export function UserInfo({ user, showEmail = false, showName = true }: { user: U
                     {getInitials(user.name)}
                 </AvatarFallback>
             </Avatar>
-            {showName && <div className="grid flex-1 text-start text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                {showEmail && <span className="text-muted-foreground truncate text-xs">{user.email}</span>}
-            </div>}
+            {showName && (
+                <div className="grid flex-1 text-start text-sm leading-tight">
+                    <bdi dir="auto" className="block truncate font-medium">
+                        {user.name}
+                    </bdi>
+                    {showEmail && (
+                        <bdi dir="auto" className="text-muted-foreground block truncate text-xs">
+                            {user.email}
+                        </bdi>
+                    )}
+                </div>
+            )}
         </>
     );
 }

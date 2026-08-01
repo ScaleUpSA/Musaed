@@ -18,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trimStrings(except: [
             fn (Request $request): bool => $request->is('internal/runs/events'),
         ]);
+        $middleware->convertEmptyStringsToNull(except: [
+            fn (Request $request): bool => $request->is('internal/runs/events'),
+        ]);
 
         $middleware->web(append: [
             SetLocale::class,

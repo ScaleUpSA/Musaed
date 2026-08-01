@@ -1,21 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { initialRunViewState, reduceAgentEvent, type RunViewState } from '@/lib/workspace-events';
+import { csrfHeaders } from '@/lib/csrf';
+import { appendCompletedAssistantMessage, initialRunViewState, reduceAgentEvent, type ConversationMessage, type RunViewState } from '@/lib/workspace-events';
 import type { AgentEvent } from '@musaed/contracts';
-
-type PersistedMessage = {
-    role: 'user' | 'assistant';
-    content: string;
-};
 
 type ConversationProps = {
     id: string;
-    messages: PersistedMessage[];
+    messages: ConversationMessage[];
     run_id: string | null;
     events: AgentEvent[];
+    model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null;
 };
-
-const csrfToken = (): string => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
 
 const isAgentEvent = (value: unknown): value is AgentEvent =>
     typeof value === 'object' &&
@@ -32,7 +27,11 @@ export function useAgentRun(conversation: ConversationProps | null) {
 
         return conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState);
     });
-    const [messages, setMessages] = useState<PersistedMessage[]>(conversation?.messages ?? []);
+    const stateRef = useRef(state);
+    const [messages, setMessages] = useState<ConversationMessage[]>(conversation?.messages ?? []);
+    const [conversationId, setConversationId] = useState<string | null>(conversation?.id ?? null);
+    const currentModelAliasRef = useRef<string | null>(conversation?.model?.alias ?? null);
+    const [currentModelAlias, setCurrentModelAlias] = useState<string | null>(currentModelAliasRef.current);
     const [runId, setRunId] = useState<string | null>(conversation?.run_id ?? null);
     const cursorRef = useRef(conversation?.events.length ?? 0);
     const statusRef = useRef(state.status);
@@ -40,6 +39,9 @@ export function useAgentRun(conversation: ConversationProps | null) {
 
     useEffect(() => {
         setMessages(conversation?.messages ?? []);
+        setConversationId(conversation?.id ?? null);
+        currentModelAliasRef.current = conversation?.model?.alias ?? null;
+        setCurrentModelAlias(currentModelAliasRef.current);
         setRunId(conversation?.run_id ?? null);
         cursorRef.current = conversation?.events.length ?? 0;
         setState(
@@ -47,6 +49,9 @@ export function useAgentRun(conversation: ConversationProps | null) {
                 ? conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState)
                 : initialRunViewState,
         );
+        stateRef.current = conversation
+            ? conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState)
+            : initialRunViewState;
     }, [conversation]);
 
     useEffect(() => {
@@ -74,7 +79,12 @@ export function useAgentRun(conversation: ConversationProps | null) {
             }
 
             const agentEvents = events.filter(isAgentEvent);
-            agentEvents.forEach((event) => setState((current) => reduceAgentEvent(current, event)));
+            const nextState = agentEvents.reduce(reduceAgentEvent, stateRef.current);
+            stateRef.current = nextState;
+            setState(nextState);
+            if (agentEvents.some((event) => event.type === 'run.completed')) {
+                setMessages((current) => appendCompletedAssistantMessage(current, nextState, currentModelAliasRef.current));
+            }
             if (typeof data.last_event_id === 'number') {
                 cursorRef.current = data.last_event_id;
             }
@@ -95,27 +105,49 @@ export function useAgentRun(conversation: ConversationProps | null) {
             headers: {
                 Accept: 'application/json',
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken(),
+                ...csrfHeaders(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ conversation_id: conversation?.id, message }),
+            body: JSON.stringify({ conversation_id: conversationId, message }),
         });
         if (!response.ok) {
+            let errorMessage = 'Unable to start run.';
+            try {
+                const data: unknown = await response.json();
+                if (typeof data === 'object' && data !== null && 'message' in data && typeof data.message === 'string') {
+                    errorMessage = data.message;
+                }
+            } catch {
+                if (response.status === 419) {
+                    errorMessage = 'Your session expired. Please refresh the page and try again.';
+                }
+            }
+
+            setState((current) => ({ ...current, error: errorMessage }));
             return;
         }
 
         const data: unknown = await response.json();
         if (typeof data !== 'object' || data === null || !('run_id' in data)) {
+            setState((current) => ({ ...current, error: 'Unable to start run.' }));
             return;
         }
 
-        setMessages((current) => [...current, { role: 'user', content: message }]);
+        setMessages((current) => [...appendCompletedAssistantMessage(current, stateRef.current, currentModelAliasRef.current), { role: 'user', content: message }]);
+        stateRef.current = initialRunViewState;
         setState(initialRunViewState);
         cursorRef.current = 0;
         if (typeof data.run_id === 'string') {
             setRunId(data.run_id);
         }
+        if ('model_alias' in data && typeof data.model_alias === 'string') {
+            currentModelAliasRef.current = data.model_alias;
+            setCurrentModelAlias(data.model_alias);
+        }
+        if ('conversation_id' in data && typeof data.conversation_id === 'string') {
+            setConversationId(data.conversation_id);
+        }
     };
 
-    return { state, messages, startRun };
+    return { state, messages, conversationId, startRun, currentModelAlias };
 }
