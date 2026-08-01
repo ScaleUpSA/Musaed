@@ -18,6 +18,24 @@ export type RunViewState = {
     error: string | null;
 };
 
+export type ConversationMessage = {
+    role: 'user' | 'assistant';
+    content: string;
+};
+
+export function appendCompletedAssistantMessage(messages: ConversationMessage[], state: RunViewState): ConversationMessage[] {
+    if (state.status !== 'completed' || state.assistantText.length === 0) {
+        return messages;
+    }
+
+    const lastMessage = messages.at(-1);
+    if (lastMessage?.role === 'assistant' && lastMessage.content === state.assistantText) {
+        return messages;
+    }
+
+    return [...messages, { role: 'assistant', content: state.assistantText }];
+}
+
 export const initialRunViewState: RunViewState = {
     runId: null,
     status: 'idle',

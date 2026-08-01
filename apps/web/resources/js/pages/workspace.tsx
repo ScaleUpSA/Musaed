@@ -29,7 +29,7 @@ export default function Workspace({ conversations, conversation }: WorkspaceProp
                 messages={run.messages}
                 conversationTitle={conversation?.title ?? null}
                 onSubmit={run.startRun}
-                conversationId={conversation?.id ?? null}
+                conversationId={run.conversationId}
                 conversations={conversations}
                 model={conversation?.model ?? null}
             />

@@ -1,16 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { initialRunViewState, reduceAgentEvent, type RunViewState } from '@/lib/workspace-events';
+import { appendCompletedAssistantMessage, initialRunViewState, reduceAgentEvent, type ConversationMessage, type RunViewState } from '@/lib/workspace-events';
 import type { AgentEvent } from '@musaed/contracts';
-
-type PersistedMessage = {
-    role: 'user' | 'assistant';
-    content: string;
-};
 
 type ConversationProps = {
     id: string;
-    messages: PersistedMessage[];
+    messages: ConversationMessage[];
     run_id: string | null;
     events: AgentEvent[];
 };
@@ -32,7 +27,9 @@ export function useAgentRun(conversation: ConversationProps | null) {
 
         return conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState);
     });
-    const [messages, setMessages] = useState<PersistedMessage[]>(conversation?.messages ?? []);
+    const stateRef = useRef(state);
+    const [messages, setMessages] = useState<ConversationMessage[]>(conversation?.messages ?? []);
+    const [conversationId, setConversationId] = useState<string | null>(conversation?.id ?? null);
     const [runId, setRunId] = useState<string | null>(conversation?.run_id ?? null);
     const cursorRef = useRef(conversation?.events.length ?? 0);
     const statusRef = useRef(state.status);
@@ -40,6 +37,7 @@ export function useAgentRun(conversation: ConversationProps | null) {
 
     useEffect(() => {
         setMessages(conversation?.messages ?? []);
+        setConversationId(conversation?.id ?? null);
         setRunId(conversation?.run_id ?? null);
         cursorRef.current = conversation?.events.length ?? 0;
         setState(
@@ -47,6 +45,9 @@ export function useAgentRun(conversation: ConversationProps | null) {
                 ? conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState)
                 : initialRunViewState,
         );
+        stateRef.current = conversation
+            ? conversation.events.filter(isAgentEvent).reduce(reduceAgentEvent, initialRunViewState)
+            : initialRunViewState;
     }, [conversation]);
 
     useEffect(() => {
@@ -74,7 +75,12 @@ export function useAgentRun(conversation: ConversationProps | null) {
             }
 
             const agentEvents = events.filter(isAgentEvent);
-            agentEvents.forEach((event) => setState((current) => reduceAgentEvent(current, event)));
+            const nextState = agentEvents.reduce(reduceAgentEvent, stateRef.current);
+            stateRef.current = nextState;
+            setState(nextState);
+            if (agentEvents.some((event) => event.type === 'run.completed')) {
+                setMessages((current) => appendCompletedAssistantMessage(current, nextState));
+            }
             if (typeof data.last_event_id === 'number') {
                 cursorRef.current = data.last_event_id;
             }
@@ -98,7 +104,7 @@ export function useAgentRun(conversation: ConversationProps | null) {
                 'X-CSRF-TOKEN': csrfToken(),
             },
             credentials: 'same-origin',
-            body: JSON.stringify({ conversation_id: conversation?.id, message }),
+            body: JSON.stringify({ conversation_id: conversationId, message }),
         });
         if (!response.ok) {
             return;
@@ -109,13 +115,17 @@ export function useAgentRun(conversation: ConversationProps | null) {
             return;
         }
 
-        setMessages((current) => [...current, { role: 'user', content: message }]);
+        setMessages((current) => [...appendCompletedAssistantMessage(current, stateRef.current), { role: 'user', content: message }]);
+        stateRef.current = initialRunViewState;
         setState(initialRunViewState);
         cursorRef.current = 0;
         if (typeof data.run_id === 'string') {
             setRunId(data.run_id);
         }
+        if ('conversation_id' in data && typeof data.conversation_id === 'string') {
+            setConversationId(data.conversation_id);
+        }
     };
 
-    return { state, messages, startRun };
+    return { state, messages, conversationId, startRun };
 }

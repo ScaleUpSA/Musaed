@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { initialRunViewState, reduceAgentEvent, shouldStickToBottom } from './workspace-events';
+import { appendCompletedAssistantMessage, initialRunViewState, reduceAgentEvent, shouldStickToBottom } from './workspace-events';
 
 describe('reduceAgentEvent', () => {
     it('turns agent events into assistant and tool view state', () => {
@@ -45,5 +45,26 @@ describe('shouldStickToBottom', () => {
 
     it('does not yank the viewport when the user has scrolled up', () => {
         expect(shouldStickToBottom({ scrollTop: 100, clientHeight: 400, scrollHeight: 800 })).toBe(false);
+    });
+});
+
+describe('appendCompletedAssistantMessage', () => {
+    it('keeps both completed answers in conversation order', () => {
+        const firstAnswer = appendCompletedAssistantMessage(
+            [{ role: 'user', content: 'First question' }],
+            { ...initialRunViewState, status: 'completed', assistantText: 'First answer' },
+        );
+        const secondQuestion = [...firstAnswer, { role: 'user' as const, content: 'Second question' }];
+        const messages = appendCompletedAssistantMessage(
+            secondQuestion,
+            { ...initialRunViewState, status: 'completed', assistantText: 'Second answer' },
+        );
+
+        expect(messages).toEqual([
+            { role: 'user', content: 'First question' },
+            { role: 'assistant', content: 'First answer' },
+            { role: 'user', content: 'Second question' },
+            { role: 'assistant', content: 'Second answer' },
+        ]);
     });
 });

@@ -85,6 +85,49 @@ class RunLifecycleTest extends TestCase
         $this->assertSame('completed', $run->fresh()->status->value);
     }
 
+    public function test_completed_answers_are_loaded_for_every_run_in_a_conversation(): void
+    {
+        $user = User::factory()->create();
+        Http::fake(['http://agent.test/*' => Http::response(['status' => 'accepted'], 202)]);
+
+        $completeRun = function (string $message, ?string $conversationId = null, string $answer = 'Answer') use ($user): string {
+            $payload = ['message' => $message];
+            if ($conversationId !== null) {
+                $payload['conversation_id'] = $conversationId;
+            }
+
+            $response = $this->actingAs($user)->postJson('/runs', $payload)->assertAccepted();
+            $run = Run::query()->findOrFail($response->json('run_id'));
+            $envelope = collect(Http::recorded())
+                ->reverse()
+                ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test')
+                    && $recording[0]->data()['runId'] === $run->id)[0]->data();
+            $headers = ['X-Run-Callback-Token' => $envelope['callbacks']['callbackToken']];
+
+            foreach ([
+                ['type' => 'run.started', 'runId' => $run->id, 'at' => now()->toISOString()],
+                ['type' => 'assistant.delta', 'runId' => $run->id, 'text' => $answer, 'at' => now()->toISOString()],
+                ['type' => 'run.completed', 'runId' => $run->id, 'at' => now()->toISOString()],
+            ] as $event) {
+                $this->withHeaders($headers)->postJson('/internal/runs/events', $event)->assertAccepted();
+            }
+
+            return $run->conversation_id;
+        };
+
+        $conversationId = $completeRun('First question', answer: 'First answer');
+        $completeRun('Second question', $conversationId, 'Second answer');
+
+        $response = $this->actingAs($user)->get("/workspace?conversation_id={$conversationId}");
+
+        $this->assertSame([
+            ['role' => 'user', 'content' => 'First question'],
+            ['role' => 'assistant', 'content' => 'First answer'],
+            ['role' => 'user', 'content' => 'Second question'],
+            ['role' => 'assistant', 'content' => 'Second answer'],
+        ], $response->inertiaProps('conversation.messages'));
+    }
+
     public function test_model_outside_the_resolved_catalogue_is_refused(): void
     {
         $user = User::factory()->create();
@@ -95,6 +138,19 @@ class RunLifecycleTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors('model');
 
         $this->assertDatabaseCount('runs', 0);
+    }
+
+    public function test_new_workspace_route_does_not_select_an_existing_conversation(): void
+    {
+        $user = User::factory()->create();
+        $user->conversations()->create([
+            'id' => (string) Str::uuid(),
+            'title' => 'Existing conversation',
+        ]);
+
+        $response = $this->actingAs($user)->get('/workspace?new=1');
+
+        $this->assertNull($response->inertiaProps('conversation'));
     }
 
     public function test_configured_real_model_is_preferred_over_the_placeholder(): void

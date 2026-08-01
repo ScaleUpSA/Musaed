@@ -17,9 +17,11 @@ class WorkspaceController extends Controller
             ->with(['messages' => fn ($query) => $query->where('role', 'user')->oldest()->limit(1)])
             ->latest('updated_at')
             ->get();
-        $conversation = $request->filled('conversation_id')
-            ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
-            : $conversations->first();
+        $conversation = $request->boolean('new')
+            ? null
+            : ($request->filled('conversation_id')
+                ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
+                : $conversations->first());
         $run = $conversation?->runs()->latest()->first();
         $catalogueModel = $run?->model_alias
             ? ModelCatalogue::query()->where('alias', $run->model_alias)->first()
