@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\MintLiteLlmVirtualKey;
 use App\Actions\ResolveRunPolicy;
 use App\Enums\RunStatus;
 use App\Http\Requests\StoreRunRequest;
@@ -16,7 +17,7 @@ use Illuminate\Support\Str;
 
 class RunController extends Controller
 {
-    public function store(StoreRunRequest $request, ResolveRunPolicy $policy, RunEnvelopeSigner $signer): JsonResponse
+    public function store(StoreRunRequest $request, ResolveRunPolicy $policy, RunEnvelopeSigner $signer, MintLiteLlmVirtualKey $mintKey): JsonResponse
     {
         $user = $request->user();
         $callbackToken = bin2hex(random_bytes(32));
@@ -46,6 +47,10 @@ class RunController extends Controller
             return $run;
         });
 
+        $litellmVirtualKey = $resolved['modelImplementation'] === 'litellm'
+            ? $mintKey->mint($resolved['modelName'], (int) config('services.agent.envelope_lifetime_seconds'))
+            : 'fake-litellm-key-'.bin2hex(random_bytes(24));
+
         $envelope = $signer->mint([
             'runId' => $run->id,
             'userId' => (string) $user->id,
@@ -61,9 +66,7 @@ class RunController extends Controller
             'agentDirectory' => config('services.agent.run_root')."/{$run->id}/agent",
             'allowedTools' => $resolved['allowedTools'],
             'approvalRequiredTools' => $resolved['approvalRequiredTools'],
-            'litellmVirtualKey' => $resolved['modelImplementation'] === 'litellm'
-                ? config('services.litellm.master_key')
-                : 'fake-litellm-key-'.bin2hex(random_bytes(24)),
+            'litellmVirtualKey' => $litellmVirtualKey,
             'sandbox' => $resolved['sandbox'],
             'callbacks' => [
                 'eventsUrl' => config('services.agent.events_url'),
@@ -108,7 +111,7 @@ class RunController extends Controller
     public function callback(Request $request): JsonResponse
     {
         $payload = $request->json()->all();
-        if (! is_array($payload) || ! isset($payload['type'], $payload['runId'], $payload['at'])) {
+        if (! $this->isValidAgentEvent($payload)) {
             return $this->callbackRejected();
         }
 
@@ -146,6 +149,30 @@ class RunController extends Controller
     private function callbackRejected(): JsonResponse
     {
         return response()->json(['code' => 'RUN_CALLBACK_REJECTED', 'message' => 'Run callback rejected.'], 401);
+    }
+
+    private function isValidAgentEvent(mixed $payload): bool
+    {
+        if (! is_array($payload)
+            || ! is_string($payload['type'] ?? null)
+            || ! is_string($payload['runId'] ?? null)
+            || ! is_string($payload['at'] ?? null)
+            || strtotime($payload['at']) === false
+        ) {
+            return false;
+        }
+
+        return match ($payload['type']) {
+            'run.started', 'run.completed' => true,
+            'assistant.delta' => is_string($payload['text'] ?? null),
+            'tool.called' => is_string($payload['toolName'] ?? null)
+                && is_string($payload['toolCallId'] ?? null),
+            'tool.completed' => is_string($payload['toolName'] ?? null)
+                && is_string($payload['toolCallId'] ?? null)
+                && is_bool($payload['isError'] ?? null),
+            'run.failed' => is_string($payload['error'] ?? null),
+            default => false,
+        };
     }
 
     private function persistAssistantMessage(Run $run): void

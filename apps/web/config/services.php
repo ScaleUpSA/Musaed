@@ -46,7 +46,8 @@ return [
     ],
 
     'litellm' => [
-        'master_key' => env('LITELLM_MASTER_KEY', 'sk-local-development-only'),
+        'url' => env('LITELLM_URL', 'http://127.0.0.1:4000'),
+        'master_key' => env('LITELLM_MASTER_KEY'),
     ],
 
     'models' => [

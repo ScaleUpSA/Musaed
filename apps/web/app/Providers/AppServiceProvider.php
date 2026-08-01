@@ -23,6 +23,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        $realModelEnabled = collect(config('services.models.catalogue', []))
+            ->contains(static fn (array $model): bool => ($model['implementation'] ?? null) === 'litellm'
+                && ($model['enabled'] ?? false));
+
+        if ($realModelEnabled && blank(config('services.litellm.master_key'))) {
+            throw new \RuntimeException('LITELLM_MASTER_KEY is required when a real model is enabled.');
+        }
     }
 }

@@ -32,18 +32,15 @@ class RunLifecycleTest extends TestCase
             'services.agent.url' => 'http://agent.test',
             'services.agent.events_url' => 'http://web.test/internal/runs/events',
             'services.agent.envelope_private_key' => $this->privateKey,
+            'services.litellm.url' => 'http://litellm.test',
+            'services.litellm.master_key' => 'sk-master-test',
         ]);
     }
 
     public function test_posted_message_is_dispatched_and_assistant_output_is_persisted(): void
     {
         $user = User::factory()->create();
-        $envelope = null;
-        Http::fake(function ($request) use (&$envelope) {
-            $envelope = $request->data();
-
-            return Http::response(['status' => 'accepted'], 202);
-        });
+        Http::fake(['http://agent.test/*' => Http::response(['status' => 'accepted'], 202)]);
 
         $response = $this->actingAs($user)->postJson('/runs', [
             'message' => 'Summarize the rollout plan.',
@@ -53,7 +50,8 @@ class RunLifecycleTest extends TestCase
         $run = Run::firstOrFail();
         $conversation = Conversation::firstOrFail();
         $this->assertSame($conversation->id, $run->conversation_id);
-        $this->assertNotNull($envelope);
+        $envelope = collect(Http::recorded())
+            ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))[0]->data();
         $padding = str_repeat('=', (4 - strlen($envelope['signature']) % 4) % 4);
         $signature = base64_decode(strtr($envelope['signature'].$padding, '-_', '+/'), true);
         $claims = $envelope;
@@ -124,20 +122,26 @@ class RunLifecycleTest extends TestCase
         (new ModelCatalogueSeeder)->run();
 
         $user = User::factory()->create();
-        $envelope = null;
-        Http::fake(function ($request) use (&$envelope) {
-            $envelope = $request->data();
-
-            return Http::response(['status' => 'accepted'], 202);
-        });
+        Http::fake([
+            'http://litellm.test/*' => Http::response([
+                'key' => 'sk-virtual-deepseek-test',
+            ], 200),
+            'http://agent.test/*' => Http::response(['status' => 'accepted'], 202),
+        ]);
 
         $this->actingAs($user)->postJson('/runs', [
             'message' => 'Use the configured model.',
         ])->assertAccepted();
 
+        $envelope = collect(Http::recorded())
+            ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))[0]->data();
         $this->assertSame('deepseek', $envelope['modelAlias']);
         $this->assertSame('deepseek', $envelope['modelName']);
         $this->assertSame('litellm', $envelope['modelImplementation']);
+        $this->assertSame('sk-virtual-deepseek-test', $envelope['litellmVirtualKey']);
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), '/key/generate')
+            && $request['models'] === ['deepseek']
+            && $request['duration'] === '300s');
     }
 
     public function test_provider_failure_marks_run_failed_and_persists_the_readable_error(): void
@@ -147,7 +151,8 @@ class RunLifecycleTest extends TestCase
 
         $this->actingAs($user)->postJson('/runs', ['message' => 'Provider failure'])->assertAccepted();
         $run = Run::firstOrFail();
-        $token = Http::recorded()[0][0]->data()['callbacks']['callbackToken'];
+        $token = collect(Http::recorded())
+            ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))[0]->data()['callbacks']['callbackToken'];
 
         $this->withHeader('X-Run-Callback-Token', $token)
             ->postJson('/internal/runs/events', [
@@ -171,11 +176,14 @@ class RunLifecycleTest extends TestCase
 
         $this->actingAs($user)->postJson('/runs', ['message' => 'First run'])->assertAccepted();
         $firstRun = Run::firstOrFail();
-        $firstToken = Http::recorded()[0][0]->data()['callbacks']['callbackToken'];
+        $firstToken = collect(Http::recorded())
+            ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))[0]->data()['callbacks']['callbackToken'];
 
         $this->actingAs($user)->postJson('/runs', ['message' => 'Second run'])->assertAccepted();
         $secondRun = Run::latest('created_at')->firstOrFail();
-        $secondToken = Http::recorded()[1][0]->data()['callbacks']['callbackToken'];
+        $secondToken = collect(Http::recorded())
+            ->filter(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))
+            ->values()[1][0]->data()['callbacks']['callbackToken'];
 
         $event = ['type' => 'run.started', 'runId' => $firstRun->id, 'at' => now()->toISOString()];
         $this->withHeader('X-Run-Callback-Token', $secondToken)
@@ -185,6 +193,16 @@ class RunLifecycleTest extends TestCase
         $this->withHeader('X-Run-Callback-Token', $firstToken)
             ->postJson('/internal/runs/events', $event)
             ->assertAccepted();
+
+        $this->withHeader('X-Run-Callback-Token', $firstToken)
+            ->postJson('/internal/runs/events', [
+                'type' => 'assistant.delta',
+                'runId' => $firstRun->id,
+                'text' => null,
+                'at' => now()->toISOString(),
+            ])
+            ->assertUnauthorized()
+            ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
 
         $this->withHeader('X-Run-Callback-Token', 'forged')
             ->postJson('/internal/runs/events', [
