@@ -4,20 +4,22 @@ import { useTranslations } from '@/hooks/use-translations';
 import AppLayout from '@/layouts/app-layout';
 import { Head } from '@inertiajs/react';
 import type { AgentEvent } from '@musaed/contracts';
+import type { CatalogueModel } from '@/lib/workspace-events';
 
 type WorkspaceProps = {
     conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
+    catalogue_models: CatalogueModel[];
     conversation: {
         id: string;
         title: string | null;
-        messages: { role: 'user' | 'assistant'; content: string }[];
+        messages: { role: 'user' | 'assistant'; content: string; model_alias?: string | null }[];
         run_id: string | null;
         events: AgentEvent[];
         model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null;
     } | null;
 };
 
-export default function Workspace({ conversations, conversation }: WorkspaceProps) {
+export default function Workspace({ conversations, catalogue_models, conversation }: WorkspaceProps) {
     const t = useTranslations();
     const run = useAgentRun(conversation);
 
@@ -32,6 +34,7 @@ export default function Workspace({ conversations, conversation }: WorkspaceProp
                 conversationId={run.conversationId}
                 conversations={conversations}
                 model={conversation?.model ?? null}
+                catalogueModels={catalogue_models}
             />
         </AppLayout>
     );

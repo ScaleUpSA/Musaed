@@ -12,6 +12,16 @@ class WorkspaceController extends Controller
     public function __invoke(Request $request): Response
     {
         $user = $request->user();
+        $catalogueModels = ModelCatalogue::query()
+            ->orderBy('alias')
+            ->get(['alias', 'label_en', 'label_ar', 'implementation'])
+            ->map(static fn (ModelCatalogue $model): array => [
+                'alias' => $model->alias,
+                'label_en' => $model->label_en,
+                'label_ar' => $model->label_ar,
+                'implementation' => $model->implementation,
+            ])
+            ->values();
         $conversations = $user->conversations()
             ->withCount('messages')
             ->with(['messages' => fn ($query) => $query->where('role', 'user')->oldest()->limit(1)])
@@ -34,10 +44,11 @@ class WorkspaceController extends Controller
                 'preview' => $item->messages->first()?->content,
                 'message_count' => $item->messages_count,
             ])->values(),
+            'catalogue_models' => $catalogueModels,
             'conversation' => $conversation ? [
                 'id' => $conversation->id,
                 'title' => $conversation->title,
-                'messages' => $conversation->messages()->oldest()->get(['role', 'content']),
+                'messages' => $conversation->messages()->oldest()->get(['role', 'content', 'model_alias']),
                 'run_id' => $run?->id,
                 'events' => $run?->events()->oldest()->get()->map(
                     static fn ($event) => $event->payload,

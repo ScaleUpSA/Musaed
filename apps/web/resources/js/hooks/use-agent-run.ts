@@ -8,6 +8,7 @@ type ConversationProps = {
     messages: ConversationMessage[];
     run_id: string | null;
     events: AgentEvent[];
+    model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null;
 };
 
 const csrfToken = (): string => document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '';
@@ -30,6 +31,7 @@ export function useAgentRun(conversation: ConversationProps | null) {
     const stateRef = useRef(state);
     const [messages, setMessages] = useState<ConversationMessage[]>(conversation?.messages ?? []);
     const [conversationId, setConversationId] = useState<string | null>(conversation?.id ?? null);
+    const runModelAliasRef = useRef<string | null>(conversation?.model?.alias ?? null);
     const [runId, setRunId] = useState<string | null>(conversation?.run_id ?? null);
     const cursorRef = useRef(conversation?.events.length ?? 0);
     const statusRef = useRef(state.status);
@@ -38,6 +40,7 @@ export function useAgentRun(conversation: ConversationProps | null) {
     useEffect(() => {
         setMessages(conversation?.messages ?? []);
         setConversationId(conversation?.id ?? null);
+        runModelAliasRef.current = conversation?.model?.alias ?? null;
         setRunId(conversation?.run_id ?? null);
         cursorRef.current = conversation?.events.length ?? 0;
         setState(
@@ -79,7 +82,7 @@ export function useAgentRun(conversation: ConversationProps | null) {
             stateRef.current = nextState;
             setState(nextState);
             if (agentEvents.some((event) => event.type === 'run.completed')) {
-                setMessages((current) => appendCompletedAssistantMessage(current, nextState));
+                setMessages((current) => appendCompletedAssistantMessage(current, nextState, runModelAliasRef.current));
             }
             if (typeof data.last_event_id === 'number') {
                 cursorRef.current = data.last_event_id;
@@ -115,12 +118,15 @@ export function useAgentRun(conversation: ConversationProps | null) {
             return;
         }
 
-        setMessages((current) => [...appendCompletedAssistantMessage(current, stateRef.current), { role: 'user', content: message }]);
+        setMessages((current) => [...appendCompletedAssistantMessage(current, stateRef.current, runModelAliasRef.current), { role: 'user', content: message }]);
         stateRef.current = initialRunViewState;
         setState(initialRunViewState);
         cursorRef.current = 0;
         if (typeof data.run_id === 'string') {
             setRunId(data.run_id);
+        }
+        if ('model_alias' in data && typeof data.model_alias === 'string') {
+            runModelAliasRef.current = data.model_alias;
         }
         if ('conversation_id' in data && typeof data.conversation_id === 'string') {
             setConversationId(data.conversation_id);

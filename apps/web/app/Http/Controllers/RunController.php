@@ -98,6 +98,7 @@ class RunController extends Controller
         return response()->json([
             'conversation_id' => $conversation->id,
             'run_id' => $run->id,
+            'model_alias' => $resolved['modelAlias'],
         ], 202);
     }
 
@@ -168,7 +169,11 @@ class RunController extends Controller
             ->implode('');
 
         if ($text !== '') {
-            $run->conversation->messages()->create(['role' => 'assistant', 'content' => $text]);
+            $run->conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $text,
+                'model_alias' => $run->model_alias,
+            ]);
         }
     }
 }

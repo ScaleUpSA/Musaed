@@ -81,6 +81,7 @@ class RunLifecycleTest extends TestCase
             'conversation_id' => $conversation->id,
             'role' => 'assistant',
             'content' => 'A persisted answer.',
+            'model_alias' => 'assistant',
         ]);
         $this->assertSame('completed', $run->fresh()->status->value);
     }
@@ -121,10 +122,78 @@ class RunLifecycleTest extends TestCase
         $response = $this->actingAs($user)->get("/workspace?conversation_id={$conversationId}");
 
         $this->assertSame([
-            ['role' => 'user', 'content' => 'First question'],
-            ['role' => 'assistant', 'content' => 'First answer'],
-            ['role' => 'user', 'content' => 'Second question'],
-            ['role' => 'assistant', 'content' => 'Second answer'],
+            ['role' => 'user', 'content' => 'First question', 'model_alias' => null],
+            ['role' => 'assistant', 'content' => 'First answer', 'model_alias' => 'assistant'],
+            ['role' => 'user', 'content' => 'Second question', 'model_alias' => null],
+            ['role' => 'assistant', 'content' => 'Second answer', 'model_alias' => 'assistant'],
+        ], $response->inertiaProps('conversation.messages'));
+    }
+
+    public function test_completed_answers_keep_their_own_model_attribution(): void
+    {
+        config([
+            'services.models.catalogue' => [
+                [
+                    'alias' => 'assistant',
+                    'litellm_model' => 'fake-model',
+                    'implementation' => 'fake',
+                    'enabled' => true,
+                    'label_en' => 'Musaed Placeholder',
+                    'label_ar' => 'مساعد تجريبي مؤقت',
+                ],
+                [
+                    'alias' => 'deepseek',
+                    'litellm_model' => 'deepseek',
+                    'implementation' => 'litellm',
+                    'enabled' => true,
+                    'label_en' => 'DeepSeek Chat',
+                    'label_ar' => 'ديب سيك للمحادثة',
+                ],
+            ],
+        ]);
+        (new ModelCatalogueSeeder)->run();
+
+        $user = User::factory()->create();
+        Http::fake([
+            'http://litellm.test/key/generate' => Http::response(['key' => 'sk-virtual-deepseek-test'], 200),
+            'http://agent.test/*' => Http::response(['status' => 'accepted'], 202),
+        ]);
+
+        $completeRun = function (string $model, string $message, string $answer, ?string $conversationId = null) use ($user): string {
+            $payload = ['model' => $model, 'message' => $message];
+            if ($conversationId !== null) {
+                $payload['conversation_id'] = $conversationId;
+            }
+
+            $response = $this->actingAs($user)->postJson('/runs', $payload)->assertAccepted();
+            $run = Run::query()->findOrFail($response->json('run_id'));
+            $envelope = collect(Http::recorded())
+                ->reverse()
+                ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test')
+                    && $recording[0]->data()['runId'] === $run->id)[0]->data();
+            $headers = ['X-Run-Callback-Token' => $envelope['callbacks']['callbackToken']];
+
+            foreach ([
+                ['type' => 'run.started', 'runId' => $run->id, 'at' => now()->toISOString()],
+                ['type' => 'assistant.delta', 'runId' => $run->id, 'text' => $answer, 'at' => now()->toISOString()],
+                ['type' => 'run.completed', 'runId' => $run->id, 'at' => now()->toISOString()],
+            ] as $event) {
+                $this->withHeaders($headers)->postJson('/internal/runs/events', $event)->assertAccepted();
+            }
+
+            return $run->conversation_id;
+        };
+
+        $conversationId = $completeRun('assistant', 'First question', 'Placeholder answer');
+        $completeRun('deepseek', 'Second question', 'DeepSeek answer', $conversationId);
+
+        $response = $this->actingAs($user)->get("/workspace?conversation_id={$conversationId}");
+
+        $this->assertSame([
+            ['role' => 'user', 'content' => 'First question', 'model_alias' => null],
+            ['role' => 'assistant', 'content' => 'Placeholder answer', 'model_alias' => 'assistant'],
+            ['role' => 'user', 'content' => 'Second question', 'model_alias' => null],
+            ['role' => 'assistant', 'content' => 'DeepSeek answer', 'model_alias' => 'deepseek'],
         ], $response->inertiaProps('conversation.messages'));
     }
 
