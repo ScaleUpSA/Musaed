@@ -76,9 +76,11 @@ Rationale in [`docs/adr/`](docs/adr/).
 
 ```bash
 cp .env.example .env
-php scripts/generate-envelope-keypair.php --write
+docker run --rm -v "$PWD":/app -w /app php:8.4-cli php scripts/generate-envelope-keypair.php --write
 docker compose --env-file .env -f docker/compose.yml up -d
 ```
+
+If PHP 8.4+ is already installed locally, `php scripts/generate-envelope-keypair.php --write` is an equivalent shortcut.
 
 The web container runs the database migrations and caches Laravel's
 configuration during startup. Visit <http://localhost:8000/register> to create

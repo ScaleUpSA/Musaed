@@ -3,22 +3,10 @@ export function getCookie(name: string): string | null {
         return null;
     }
 
-    const cookies = document.cookie.split('; ').filter(Boolean);
-    for (const cookie of cookies) {
-        const separatorIndex = cookie.indexOf('=');
-        if (separatorIndex === -1) {
-            continue;
-        }
+    const prefix = `${name}=`;
+    const cookie = document.cookie.split('; ').find((value) => value.startsWith(prefix));
 
-        const cookieName = cookie.slice(0, separatorIndex);
-        if (cookieName !== name) {
-            continue;
-        }
-
-        return cookie.slice(separatorIndex + 1);
-    }
-
-    return null;
+    return cookie?.slice(prefix.length) ?? null;
 }
 
 export function csrfHeaders(): Record<string, string> {
