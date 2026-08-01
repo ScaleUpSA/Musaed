@@ -93,7 +93,7 @@ async function* streamLiteLlmResponse(
         }
 
         const text = streamedText(payload);
-        if (text !== null) {
+        if (text !== null && text.length > 0) {
           yield text;
         }
       }
