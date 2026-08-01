@@ -9,8 +9,6 @@ import { resolve } from "node:path";
 import { canonicalizeRunEnvelope } from "@musaed/contracts";
 import { expect, it } from "vitest";
 
-const modelImplementation: "litellm" = "litellm";
-
 const claims = {
   runId: "run-cross-language",
   userId: "user-1",
@@ -18,10 +16,10 @@ const claims = {
   workspaceId: "workspace-1",
   conversationId: "conversation-1",
   prompt: "Summarize the request",
-  allowedModels: ["gpt-4o-mini"],
+  allowedModels: ["assistant"],
   modelAlias: "assistant",
   modelName: "gpt-4o-mini",
-  modelImplementation,
+  modelImplementation: "litellm",
   workingDirectory: "/var/lib/musaed/runs/run-cross-language/workspace",
   agentDirectory: "/var/lib/musaed/runs/run-cross-language/agent",
   allowedTools: ["read"],
@@ -46,9 +44,17 @@ const claims = {
   },
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
-};
+} as const;
 
 it("verifies a Laravel-signed envelope in Node", () => {
+  const mutableClaims = {
+    ...claims,
+    allowedModels: [...claims.allowedModels],
+    allowedTools: [...claims.allowedTools],
+    approvalRequiredTools: [...claims.approvalRequiredTools],
+    sandbox: { ...claims.sandbox },
+    callbacks: { ...claims.callbacks },
+  };
   const keyPair = generateKeyPairSync("ed25519");
   const privateSeed = keyPair.privateKey
     .export({ format: "der", type: "pkcs8" })
@@ -83,7 +89,7 @@ it("verifies a Laravel-signed envelope in Node", () => {
   expect(
     verify(
       null,
-      Buffer.from(canonicalizeRunEnvelope(claims)),
+      Buffer.from(canonicalizeRunEnvelope(mutableClaims)),
       createPublicKey({
         key: Buffer.concat([
           Buffer.from("302a300506032b6570032100", "hex"),

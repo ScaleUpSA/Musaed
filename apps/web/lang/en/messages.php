@@ -119,6 +119,8 @@ return [
         'cancel_run' => 'Cancel run',
         'cancel_unavailable' => 'Cancellation will be available when the runtime is connected.',
         'assistant' => 'Musaed',
+        'answered_by' => 'Answered by :model',
+        'placeholder_model' => 'Placeholder model',
         'you' => 'You',
         'tool_activity' => 'Tool activity',
         'tool_running' => 'Running',

@@ -24,7 +24,6 @@ final class ResolveRunPolicy
      */
     public function resolve(User $user, ?string $requestedAlias = null): array
     {
-        ModelCatalogue::syncConfigured();
         $models = ModelCatalogue::query()->where('enabled', true)->orderBy('id')->get();
         $selected = $requestedAlias === null
             ? $models->first()

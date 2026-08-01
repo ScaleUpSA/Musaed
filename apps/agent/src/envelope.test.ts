@@ -1,12 +1,10 @@
 import { generateKeyPairSync, type KeyObject, sign } from "node:crypto";
 
-import { canonicalizeRunEnvelope } from "@musaed/contracts";
+import { canonicalizeRunEnvelope, type RunEnvelope } from "@musaed/contracts";
 import { describe, expect, it } from "vitest";
 
 import type { AgentConfig } from "./config.js";
 import { RunEnvelopePolicyError, verifyRunEnvelope } from "./envelope.js";
-
-const modelImplementation: "litellm" = "litellm";
 
 const createKeys = () => {
   const keyPair = generateKeyPairSync("ed25519");
@@ -28,10 +26,10 @@ const claims = {
   workspaceId: "workspace-1",
   conversationId: "conversation-1",
   prompt: "Summarize the request",
-  allowedModels: ["gpt-4o-mini"],
+  allowedModels: ["assistant"],
   modelAlias: "assistant",
   modelName: "gpt-4o-mini",
-  modelImplementation,
+  modelImplementation: "litellm",
   workingDirectory: "/tmp/musaed-run-workspace",
   agentDirectory: "/tmp/musaed-run-agent",
   allowedTools: ["read"],
@@ -51,7 +49,7 @@ const claims = {
   },
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
-};
+} satisfies Omit<RunEnvelope, "signature">;
 
 const signEnvelope = (
   value: typeof claims,

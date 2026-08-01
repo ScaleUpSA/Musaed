@@ -11,7 +11,8 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { AgentEvent, RunEnvelope } from "@musaed/contracts";
 
 import type { AgentConfig } from "./config.js";
-import { streamModelResponse } from "./model-provider.js";
+import { ModelProviderError, streamModelResponse } from "./model-provider.js";
+import { RunEnvelopePolicyError } from "./envelope.js";
 
 export interface PreparedRun {
   runId: string;
@@ -86,6 +87,10 @@ export async function prepareRun(
   envelope: RunEnvelope,
   config: AgentConfig,
 ): Promise<PreparedRun> {
+  if (!envelope.allowedModels.includes(envelope.modelAlias)) {
+    throw new RunEnvelopePolicyError();
+  }
+
   const workingDirectory = await pathWithinRunRoot(
     envelope.workingDirectory,
     config.agentRunRoot,
@@ -156,7 +161,8 @@ export async function executeRun(
     }
     await emit({ type: "run.completed", runId: envelope.runId, at: at() });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Model execution failed.";
+    console.error("Run execution failed", error);
+    const message = error instanceof ModelProviderError ? error.message : "Run failed.";
     try {
       await emit({
         type: "run.failed",

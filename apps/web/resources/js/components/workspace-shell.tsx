@@ -144,7 +144,7 @@ function ToolActivity({ state }: { state: RunViewState }) {
     );
 }
 
-function ConversationView({ state, messages, title, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; title: string | null; onSubmit: (message: string) => void }) {
+function ConversationView({ state, messages, title, model, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; title: string | null; model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null; onSubmit: (message: string) => void }) {
     const t = useTranslations();
     const [draft, setDraft] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -206,6 +206,12 @@ function ConversationView({ state, messages, title, onSubmit }: { state: RunView
                                 <span className="bg-primary size-1.5 rounded-full" />
                                 {t('workspace.assistant')}
                             </div>
+                            {model && (
+                                <p className="text-muted-foreground mb-2 text-xs">
+                                    {t('workspace.answered_by').replace(':model', model.label)}
+                                    {model.implementation === 'fake' && ` · ${t('workspace.placeholder_model')}`}
+                                </p>
+                            )}
                             <div dir="auto" className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
                                 {state.assistantText}
                             </div>
@@ -298,6 +304,7 @@ export default function WorkspaceShell({
     onSubmit,
     conversationId,
     conversations,
+    model,
 }: {
     state: RunViewState;
     messages: { role: 'user' | 'assistant'; content: string }[];
@@ -305,6 +312,7 @@ export default function WorkspaceShell({
     onSubmit: (message: string) => void;
     conversationId: string | null;
     conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
+    model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null;
 }) {
     const [selectedId, setSelectedId] = useState<string | null>(conversationId);
     const [panelOpen, setPanelOpen] = useState(false);
@@ -351,7 +359,7 @@ export default function WorkspaceShell({
                     }}
                     onNew={() => router.visit('/workspace')}
                 />
-                <ConversationView state={state} messages={messages} title={conversationTitle} onSubmit={onSubmit} />
+                    <ConversationView state={state} messages={messages} title={conversationTitle} model={model} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
             </div>
         </div>

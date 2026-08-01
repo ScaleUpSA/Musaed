@@ -13,6 +13,7 @@ type WorkspaceProps = {
         messages: { role: 'user' | 'assistant'; content: string }[];
         run_id: string | null;
         events: AgentEvent[];
+        model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null;
     } | null;
 };
 
@@ -30,6 +31,7 @@ export default function Workspace({ conversations, conversation }: WorkspaceProp
                 onSubmit={run.startRun}
                 conversationId={conversation?.id ?? null}
                 conversations={conversations}
+                model={conversation?.model ?? null}
             />
         </AppLayout>
     );

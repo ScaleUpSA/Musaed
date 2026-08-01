@@ -81,4 +81,24 @@ describe("streamModelResponse", () => {
     await expect(collect()).rejects.toThrow("Model provider rate limit reached.");
     vi.unstubAllGlobals();
   });
+
+  it("rejects a stream that ends without a completion marker", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response('data: {"choices":[{"delta":{"content":"partial"}}]}\n\n', {
+          headers: { "content-type": "text/event-stream" },
+        }),
+      ),
+    );
+
+    const collect = async (): Promise<void> => {
+      for await (const chunk of streamModelResponse({ ...envelope, signature: "signature" }, config)) {
+        expect(chunk).toBeTypeOf("string");
+      }
+    };
+
+    await expect(collect()).rejects.toThrow("Model provider stream ended before completion.");
+    vi.unstubAllGlobals();
+  });
 });

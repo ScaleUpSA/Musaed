@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ModelCatalogue;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +21,9 @@ class WorkspaceController extends Controller
             ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
             : $conversations->first();
         $run = $conversation?->runs()->latest()->first();
+        $catalogueModel = $run?->model_alias
+            ? ModelCatalogue::query()->where('alias', $run->model_alias)->first()
+            : null;
 
         return Inertia::render('workspace', [
             'conversations' => $conversations->map(fn ($item) => [
@@ -36,6 +40,11 @@ class WorkspaceController extends Controller
                 'events' => $run?->events()->oldest()->get()->map(
                     static fn ($event) => $event->payload,
                 )->values() ?? [],
+                'model' => $catalogueModel ? [
+                    'alias' => $catalogueModel->alias,
+                    'label' => app()->getLocale() === 'ar' ? $catalogueModel->label_ar : $catalogueModel->label_en,
+                    'implementation' => $catalogueModel->implementation,
+                ] : null,
             ] : null,
         ]);
     }

@@ -6,6 +6,7 @@ use App\Models\Conversation;
 use App\Models\Run;
 use App\Models\User;
 use App\Support\RunEnvelope\CanonicalJson;
+use Database\Seeders\ModelCatalogueSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -22,6 +23,7 @@ class RunLifecycleTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        (new ModelCatalogueSeeder)->run();
 
         $keyPair = sodium_crypto_sign_keypair();
         $this->privateKey = base64_encode(sodium_crypto_sign_secretkey($keyPair));

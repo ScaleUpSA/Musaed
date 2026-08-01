@@ -3,12 +3,19 @@ import type { RunEnvelope } from "@musaed/contracts";
 import type { AgentConfig } from "./config.js";
 import { completeFakeResponse } from "./fake-provider.js";
 
+export class ModelProviderError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ModelProviderError";
+  }
+}
+
 const providerError = (status: number): Error => {
   if (status === 429) {
-    return new Error("Model provider rate limit reached.");
+    return new ModelProviderError("Model provider rate limit reached.");
   }
 
-  return new Error(`Model provider request failed (${status}).`);
+  return new ModelProviderError(`Model provider request failed (${status}).`);
 };
 
 const streamedText = (value: unknown): string | null => {
@@ -46,10 +53,10 @@ async function* streamLiteLlmResponse(
     });
   } catch (error) {
     if (error instanceof DOMException && error.name === "TimeoutError") {
-      throw new Error("Model provider timed out.");
+      throw new ModelProviderError("Model provider timed out.");
     }
 
-    throw new Error("Model provider is unavailable.");
+    throw new ModelProviderError("Model provider is unavailable.");
   }
 
   if (!response.ok || response.body === null) {
@@ -58,6 +65,7 @@ async function* streamLiteLlmResponse(
 
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
   let buffer = "";
+  let completed = false;
 
   try {
     while (true) {
@@ -73,14 +81,15 @@ async function* streamLiteLlmResponse(
 
         const data = line.slice(5).trim();
         if (data === "[DONE]") {
-          return;
+          completed = true;
+          break;
         }
 
         let payload: unknown;
         try {
           payload = JSON.parse(data);
         } catch {
-          throw new Error("Model provider returned invalid streaming data.");
+          throw new ModelProviderError("Model provider returned invalid streaming data.");
         }
 
         const text = streamedText(payload);
@@ -89,8 +98,12 @@ async function* streamLiteLlmResponse(
         }
       }
 
-      if (done) {
+      if (completed) {
         return;
+      }
+
+      if (done) {
+        throw new ModelProviderError("Model provider stream ended before completion.");
       }
     }
   } finally {
