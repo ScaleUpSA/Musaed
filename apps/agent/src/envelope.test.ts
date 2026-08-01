@@ -1,6 +1,6 @@
 import { generateKeyPairSync, type KeyObject, sign } from "node:crypto";
 
-import { canonicalizeRunEnvelope } from "@musaed/contracts";
+import { canonicalizeRunEnvelope, type RunEnvelope } from "@musaed/contracts";
 import { describe, expect, it } from "vitest";
 
 import type { AgentConfig } from "./config.js";
@@ -26,7 +26,10 @@ const claims = {
   workspaceId: "workspace-1",
   conversationId: "conversation-1",
   prompt: "Summarize the request",
-  allowedModels: ["gpt-4o-mini"],
+  allowedModels: ["assistant"],
+  modelAlias: "assistant",
+  modelName: "gpt-4o-mini",
+  modelImplementation: "litellm",
   workingDirectory: "/tmp/musaed-run-workspace",
   agentDirectory: "/tmp/musaed-run-agent",
   allowedTools: ["read"],
@@ -46,7 +49,7 @@ const claims = {
   },
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
-};
+} satisfies Omit<RunEnvelope, "signature">;
 
 const signEnvelope = (
   value: typeof claims,
@@ -66,6 +69,7 @@ const configFor = (publicKey: string): AgentConfig => ({
   litellmUrl: "http://litellm:4000",
   envelopePublicKey: publicKey,
   envelopeClockSkewMs: 30_000,
+  modelRequestTimeoutMs: 30_000,
 });
 
 describe("run envelope verification", () => {

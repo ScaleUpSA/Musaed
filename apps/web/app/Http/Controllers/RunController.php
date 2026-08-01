@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\MintLiteLlmVirtualKey;
 use App\Actions\ResolveRunPolicy;
 use App\Enums\RunStatus;
 use App\Http\Requests\StoreRunRequest;
 use App\Models\Run;
 use App\Models\RunEvent;
+use App\Support\AgentEvent\AgentEventValidator;
 use App\Support\RunEnvelope\RunEnvelopeSigner;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -16,11 +18,11 @@ use Illuminate\Support\Str;
 
 class RunController extends Controller
 {
-    public function store(StoreRunRequest $request, ResolveRunPolicy $policy, RunEnvelopeSigner $signer): JsonResponse
+    public function store(StoreRunRequest $request, ResolveRunPolicy $policy, RunEnvelopeSigner $signer, MintLiteLlmVirtualKey $mintKey): JsonResponse
     {
         $user = $request->user();
         $callbackToken = bin2hex(random_bytes(32));
-        $resolved = $policy->resolve($user);
+        $resolved = $policy->resolve($user, $request->string('model')->toString() ?: null);
         $conversation = $request->filled('conversation_id')
             ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
             : $user->conversations()->create([
@@ -39,11 +41,22 @@ class RunController extends Controller
                 'user_id' => $user->id,
                 'status' => RunStatus::Queued,
                 'policy_version' => $resolved['policyVersion'],
+                'model_alias' => $resolved['modelAlias'],
                 'callback_token_hash' => hash('sha256', $callbackToken),
             ]);
 
             return $run;
         });
+
+        try {
+            $litellmVirtualKey = $resolved['modelImplementation'] === 'litellm'
+                ? $mintKey->mint($resolved['modelName'], (int) config('services.agent.envelope_lifetime_seconds'))
+                : 'fake-litellm-key-'.bin2hex(random_bytes(24));
+        } catch (\RuntimeException $exception) {
+            $run->update(['status' => RunStatus::Failed]);
+
+            return response()->json(['message' => $exception->getMessage()], 502);
+        }
 
         $envelope = $signer->mint([
             'runId' => $run->id,
@@ -53,11 +66,14 @@ class RunController extends Controller
             'conversationId' => $conversation->id,
             'prompt' => $request->string('message')->toString(),
             'allowedModels' => $resolved['allowedModels'],
+            'modelAlias' => $resolved['modelAlias'],
+            'modelName' => $resolved['modelName'],
+            'modelImplementation' => $resolved['modelImplementation'],
             'workingDirectory' => config('services.agent.run_root')."/{$run->id}/workspace",
             'agentDirectory' => config('services.agent.run_root')."/{$run->id}/agent",
             'allowedTools' => $resolved['allowedTools'],
             'approvalRequiredTools' => $resolved['approvalRequiredTools'],
-            'litellmVirtualKey' => 'fake-litellm-key-'.bin2hex(random_bytes(24)),
+            'litellmVirtualKey' => $litellmVirtualKey,
             'sandbox' => $resolved['sandbox'],
             'callbacks' => [
                 'eventsUrl' => config('services.agent.events_url'),
@@ -82,6 +98,7 @@ class RunController extends Controller
         return response()->json([
             'conversation_id' => $conversation->id,
             'run_id' => $run->id,
+            'model_alias' => $resolved['modelAlias'],
         ], 202);
     }
 
@@ -99,10 +116,10 @@ class RunController extends Controller
         ]);
     }
 
-    public function callback(Request $request): JsonResponse
+    public function callback(Request $request, AgentEventValidator $validator): JsonResponse
     {
         $payload = $request->json()->all();
-        if (! is_array($payload) || ! isset($payload['type'], $payload['runId'], $payload['at'])) {
+        if (! is_array($payload) || ! $validator->accepts($payload)) {
             return $this->callbackRejected();
         }
 
@@ -152,7 +169,11 @@ class RunController extends Controller
             ->implode('');
 
         if ($text !== '') {
-            $run->conversation->messages()->create(['role' => 'assistant', 'content' => $text]);
+            $run->conversation->messages()->create([
+                'role' => 'assistant',
+                'content' => $text,
+                'model_alias' => $run->model_alias,
+            ]);
         }
     }
 }

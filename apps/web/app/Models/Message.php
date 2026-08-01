@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
-    protected $fillable = ['role', 'content'];
+    protected $fillable = ['role', 'content', 'model_alias'];
 
     public function conversation(): BelongsTo
     {

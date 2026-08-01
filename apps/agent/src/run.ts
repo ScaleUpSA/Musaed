@@ -11,7 +11,8 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { AgentEvent, RunEnvelope } from "@musaed/contracts";
 
 import type { AgentConfig } from "./config.js";
-import { completeFakeResponse } from "./fake-provider.js";
+import { ModelProviderError, streamModelResponse } from "./model-provider.js";
+import { RunEnvelopePolicyError } from "./envelope.js";
 
 export interface PreparedRun {
   runId: string;
@@ -86,6 +87,10 @@ export async function prepareRun(
   envelope: RunEnvelope,
   config: AgentConfig,
 ): Promise<PreparedRun> {
+  if (!envelope.allowedModels.includes(envelope.modelAlias)) {
+    throw new RunEnvelopePolicyError();
+  }
+
   const workingDirectory = await pathWithinRunRoot(
     envelope.workingDirectory,
     config.agentRunRoot,
@@ -99,15 +104,15 @@ export async function prepareRun(
     api: "openai-completions",
     apiKey: envelope.litellmVirtualKey,
     baseUrl: config.litellmUrl,
-    models: envelope.allowedModels.map((id) => ({
-      id,
-      name: id,
+    models: [{
+      id: envelope.modelName,
+      name: envelope.modelName,
       reasoning: false,
       input: ["text"],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: 128_000,
       maxTokens: 16_384,
-    })),
+    }],
   });
   const resourceLoader = new DefaultResourceLoader({
     cwd: workingDirectory,
@@ -151,16 +156,18 @@ export async function executeRun(
   try {
     await prepareRun(envelope, config);
     await emit({ type: "run.started", runId: envelope.runId, at: at() });
-    for await (const text of completeFakeResponse(envelope.prompt)) {
+    for await (const text of streamModelResponse(envelope, config)) {
       await emit({ type: "assistant.delta", runId: envelope.runId, text, at: at() });
     }
     await emit({ type: "run.completed", runId: envelope.runId, at: at() });
-  } catch {
+  } catch (error) {
+    console.error("Run execution failed", error);
+    const message = error instanceof ModelProviderError ? error.message : "Run failed.";
     try {
       await emit({
         type: "run.failed",
         runId: envelope.runId,
-        error: "Run failed",
+        error: message,
         at: at(),
       });
     } catch {

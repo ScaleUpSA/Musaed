@@ -45,9 +45,16 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.5"
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_pgsql, pdo_sqlite
+          tools: composer:v2
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: apps/web
       - run: pnpm --filter @musaed/contracts test
       - run: pnpm --filter @musaed/agent test
       - run: pnpm --filter @musaed/broker test

@@ -16,6 +16,7 @@ class StoreRunRequest extends FormRequest
         return [
             'message' => ['required', 'string', 'max:10000'],
             'conversation_id' => ['nullable', 'uuid'],
+            'model' => ['nullable', 'string', 'max:100'],
         ];
     }
 }

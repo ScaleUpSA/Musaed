@@ -24,7 +24,7 @@ flowchart TB
     end
 
     subgraph z2["Zone 2 · trusted code, untrusted input"]
-        agent["Agent runtime<br/>holds no long-lived credentials"]
+        agent["Agent runtime<br/>holds only short-lived run credentials"]
     end
 
     subgraph z3["Zone 3 · mediators"]
@@ -92,6 +92,9 @@ never sent to the browser.
 **Prompt injection leading to tool abuse.** A page or document tells the agent to exfiltrate data or call a destructive tool. Mitigations: envelope-scoped tool allow-lists, `tool_call` hooks that block, approval gates on sensitive tools, deny-by-default egress, and the fact that the agent has no ambient credentials to steal.
 
 **Credential exfiltration.** Provider keys live only in the control plane and LiteLLM. The runtime receives a per-run virtual key with a narrow model scope and a short life. No key is ever rendered to a browser, logged, or written to a session file.
+The LiteLLM master key remains exclusively in the control plane; Laravel mints
+each real-model run a short-lived virtual key through LiteLLM's key-generation
+API, scoped to the selected model and expiring with the run envelope.
 
 **Sandbox escape.** Rootless Podman, `no-new-privileges`, dropped capabilities, seccomp/AppArmor, read-only rootfs where practical, CPU/RAM/PID ceilings. Escape is treated as possible, not impossible — hence egress restriction and the absence of anything valuable inside the container.
 

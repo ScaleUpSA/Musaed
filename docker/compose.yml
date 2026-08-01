@@ -39,11 +39,14 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-musaed}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       REDIS_HOST: redis
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      LITELLM_URL: http://litellm:4000
+      LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-development-only}
       AGENT_URL: http://agent:3001
       AGENT_EVENTS_URL: http://web:8000/internal/runs/events
       AGENT_AUDIT_URL: http://web:8000/internal/runs/events
       AGENT_APPROVALS_URL: http://web:8000/internal/runs/events
-      AGENT_ENVELOPE_PRIVATE_KEY: ${AGENT_ENVELOPE_PRIVATE_KEY:?AGENT_ENVELOPE_PRIVATE_KEY must be set}
+      AGENT_ENVELOPE_PRIVATE_KEY: ${AGENT_ENVELOPE_PRIVATE_KEY:?Run docker run --rm -v .:/app -w /app php:8.4-cli php scripts/generate-envelope-keypair.php --write}
       RUN_ENVELOPE_LIFETIME_SECONDS: ${RUN_ENVELOPE_LIFETIME_SECONDS:-300}
     ports:
       - "${WEB_PORT:-8000}:8000"
@@ -61,7 +64,7 @@ services:
       PORT: 3001
       AGENT_RUN_ROOT: ${AGENT_RUN_ROOT:-/var/lib/musaed/runs}
       LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
-      AGENT_ENVELOPE_PUBLIC_KEY: ${AGENT_ENVELOPE_PUBLIC_KEY:?AGENT_ENVELOPE_PUBLIC_KEY must be set}
+      AGENT_ENVELOPE_PUBLIC_KEY: ${AGENT_ENVELOPE_PUBLIC_KEY:?Run docker run --rm -v .:/app -w /app php:8.4-cli php scripts/generate-envelope-keypair.php --write}
       AGENT_ENVELOPE_CLOCK_SKEW_SECONDS: ${AGENT_ENVELOPE_CLOCK_SKEW_SECONDS:-30}
     ports:
       - "${AGENT_PORT:-3001}:3001"
@@ -83,6 +86,7 @@ services:
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-development-only}
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-change-me-too}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-musaed}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/litellm
     volumes:
       - ./litellm.config.yaml:/app/config.yaml:ro

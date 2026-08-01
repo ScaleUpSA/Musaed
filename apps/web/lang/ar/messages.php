@@ -119,6 +119,8 @@ return [
         'cancel_run' => 'إلغاء التنفيذ',
         'cancel_unavailable' => 'سيصبح الإلغاء متاحًا عند ربط بيئة التنفيذ.',
         'assistant' => 'مساعد',
+        'answered_by' => 'أجاب بواسطة :model',
+        'placeholder_model' => 'نموذج تجريبي مؤقت',
         'you' => 'أنت',
         'tool_activity' => 'نشاط الأدوات',
         'tool_running' => 'قيد التنفيذ',

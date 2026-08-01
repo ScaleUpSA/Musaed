@@ -13,7 +13,7 @@ class Run extends Model
 
     protected $keyType = 'string';
 
-    protected $fillable = ['id', 'user_id', 'status', 'policy_version', 'callback_token_hash'];
+    protected $fillable = ['id', 'user_id', 'status', 'policy_version', 'callback_token_hash', 'model_alias'];
 
     protected $casts = [
         'status' => RunStatus::class,

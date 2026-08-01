@@ -45,4 +45,30 @@ return [
         'envelope_lifetime_seconds' => (int) env('RUN_ENVELOPE_LIFETIME_SECONDS', 300),
     ],
 
+    'litellm' => [
+        'url' => env('LITELLM_URL', 'http://127.0.0.1:4000'),
+        'master_key' => env('LITELLM_MASTER_KEY'),
+    ],
+
+    'models' => [
+        'catalogue' => [
+            [
+                'alias' => 'assistant',
+                'litellm_model' => 'fake-model',
+                'implementation' => 'fake',
+                'enabled' => true,
+                'label_en' => 'Musaed Placeholder',
+                'label_ar' => 'مساعد تجريبي مؤقت',
+            ],
+            [
+                'alias' => 'deepseek',
+                'litellm_model' => 'deepseek',
+                'implementation' => 'litellm',
+                'enabled' => filled(env('DEEPSEEK_API_KEY')),
+                'label_en' => 'DeepSeek Chat',
+                'label_ar' => 'ديب سيك للمحادثة',
+            ],
+        ],
+    ],
+
 ];

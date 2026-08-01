@@ -9,6 +9,7 @@ import { canonicalizeRunEnvelope, type RunEnvelope } from "@musaed/contracts";
 import { type AgentConfig, loadAgentConfig } from "./config.js";
 import { buildServer } from "./server.js";
 import { prepareRun } from "./run.js";
+import { RunEnvelopePolicyError } from "./envelope.js";
 
 const keyPair = generateKeyPairSync("ed25519");
 const publicKey = keyPair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("base64");
@@ -21,7 +22,10 @@ const claims = {
   workspaceId: "workspace-1",
   conversationId: "conversation-1",
   prompt: "Summarize the request",
-  allowedModels: ["gpt-4o-mini"],
+  allowedModels: ["assistant"],
+  modelAlias: "assistant",
+  modelName: "gpt-4o-mini",
+  modelImplementation: "litellm",
   workingDirectory: "/tmp/musaed-run-workspace",
   agentDirectory: "/tmp/musaed-run-agent",
   allowedTools: [],
@@ -41,7 +45,7 @@ const claims = {
   },
   policyVersion: "policy-1",
   expiresAt: "2030-01-01T00:00:00.000Z",
-};
+} satisfies Omit<RunEnvelope, "signature">;
 
 const signEnvelope = (value: typeof claims): RunEnvelope => ({
   ...value,
@@ -60,6 +64,13 @@ const createConfig = (agentRunRoot: string): AgentConfig => ({
   litellmUrl: "http://litellm:4000",
   envelopePublicKey: publicKey,
   envelopeClockSkewMs: 30_000,
+  modelRequestTimeoutMs: 30_000,
+});
+
+it("rejects a selected model alias outside the envelope allow-list", async () => {
+  await expect(
+    prepareRun({ ...envelope, modelAlias: "outside-catalogue" }, createConfig("/tmp/musaed-runs")),
+  ).rejects.toBeInstanceOf(RunEnvelopePolicyError);
 });
 
 describe("agent service", () => {

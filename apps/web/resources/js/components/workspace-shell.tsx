@@ -21,7 +21,7 @@ import { UserInfo } from '@/components/user-info';
 import { UserMenuContent } from '@/components/user-menu-content';
 import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
-import { shouldStickToBottom, type RunViewState } from '@/lib/workspace-events';
+import { resolveMessageModelLabel, shouldStickToBottom, type CatalogueModel, type ConversationMessage, type RunViewState } from '@/lib/workspace-events';
 import { type SharedData } from '@/types';
 import { Link, router, usePage } from '@inertiajs/react';
 
@@ -67,8 +67,8 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
                         <CircleDot className="size-4" />
                     </div>
                     {!collapsed && <span className="min-w-0">
-                        <span dir="auto" className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</span>
-                        {conversation.preview && <span dir="auto" className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</span>}
+                        <bdi dir="auto" className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</bdi>
+                        {conversation.preview && <bdi dir="auto" className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</bdi>}
                     </span>}
                 </button>)}
             </div>
@@ -144,12 +144,15 @@ function ToolActivity({ state }: { state: RunViewState }) {
     );
 }
 
-function ConversationView({ state, messages, title, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; title: string | null; onSubmit: (message: string) => void }) {
+function ConversationView({ state, messages, title, currentModelAlias, catalogueModels, onSubmit }: { state: RunViewState; messages: ConversationMessage[]; title: string | null; currentModelAlias: string | null; catalogueModels: CatalogueModel[]; onSubmit: (message: string) => void }) {
     const t = useTranslations();
+    const { locale } = usePage<SharedData>().props;
     const [draft, setDraft] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const pinnedRef = useRef(true);
     const running = state.status === 'running';
+    const runningModel = currentModelAlias ? catalogueModels.find((item) => item.alias === currentModelAlias) : null;
+    const runningModelLabel = runningModel ? resolveMessageModelLabel(catalogueModels, currentModelAlias, locale) ?? runningModel.label_en : null;
 
     useEffect(() => {
         const element = scrollRef.current;
@@ -192,20 +195,49 @@ function ConversationView({ state, messages, title, onSubmit }: { state: RunView
 
             <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-                    {messages.filter((message) => message.role === 'user').map((message, index) => (
-                        <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
-                            <div dir="auto" className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
-                                {message.content}
-                            </div>
-                        </div>
-                    ))}
+                    {messages.map((message, index) => {
+                        const messageModel = message.model_alias ? catalogueModels.find((item) => item.alias === message.model_alias) : null;
+                        const messageModelLabel = resolveMessageModelLabel(catalogueModels, message.model_alias, locale);
 
-                    {state.assistantText.length > 0 && (
+                        return (
+                            <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
+                                {message.role === 'user' ? (
+                                    <div dir="auto" className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
+                                        {message.content}
+                                    </div>
+                                ) : (
+                                    <div className="flex max-w-full flex-col items-start">
+                                        <div className="text-primary mb-2 flex items-center gap-2 text-xs font-semibold">
+                                            <span className="bg-primary size-1.5 rounded-full" />
+                                            {t('workspace.assistant')}
+                                        </div>
+                                        {messageModelLabel && messageModel && (
+                                            <p className="text-muted-foreground mb-2 text-xs">
+                                                {t('workspace.answered_by').replace(':model', messageModelLabel)}
+                                                {messageModel.implementation === 'fake' && ` · ${t('workspace.placeholder_model')}`}
+                                            </p>
+                                        )}
+                                        <div dir="auto" className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
+                                            {message.content}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+
+                    {state.assistantText.length > 0 && state.status === 'running' && (
                         <div className="flex max-w-full flex-col items-start">
                             <div className="text-primary mb-2 flex items-center gap-2 text-xs font-semibold">
                                 <span className="bg-primary size-1.5 rounded-full" />
                                 {t('workspace.assistant')}
                             </div>
+                            {runningModel && runningModelLabel && (
+                                <p className="text-muted-foreground mb-2 text-xs">
+                                    {t('workspace.answered_by').replace(':model', runningModelLabel)}
+                                    {runningModel.implementation === 'fake' && ` · ${t('workspace.placeholder_model')}`}
+                                </p>
+                            )}
                             <div dir="auto" className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
                                 {state.assistantText}
                             </div>
@@ -298,13 +330,17 @@ export default function WorkspaceShell({
     onSubmit,
     conversationId,
     conversations,
+    currentModelAlias,
+    catalogueModels,
 }: {
     state: RunViewState;
-    messages: { role: 'user' | 'assistant'; content: string }[];
+    messages: ConversationMessage[];
     conversationTitle: string | null;
     onSubmit: (message: string) => void;
     conversationId: string | null;
     conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
+    currentModelAlias: string | null;
+    catalogueModels: CatalogueModel[];
 }) {
     const [selectedId, setSelectedId] = useState<string | null>(conversationId);
     const [panelOpen, setPanelOpen] = useState(false);
@@ -315,6 +351,10 @@ export default function WorkspaceShell({
     useEffect(() => {
         window.localStorage.setItem('musaed.rail-collapsed', String(railCollapsed));
     }, [railCollapsed]);
+
+    useEffect(() => {
+        setSelectedId(conversationId);
+    }, [conversationId]);
 
     useEffect(() => {
         if (state.tools.length > 0) {
@@ -349,9 +389,9 @@ export default function WorkspaceShell({
                         setSelectedId(id);
                         router.visit(`/workspace?conversation_id=${encodeURIComponent(id)}`, { preserveScroll: true });
                     }}
-                    onNew={() => router.visit('/workspace')}
+                    onNew={() => router.visit('/workspace?new=1')}
                 />
-                <ConversationView state={state} messages={messages} title={conversationTitle} onSubmit={onSubmit} />
+                    <ConversationView state={state} messages={messages} title={conversationTitle} currentModelAlias={currentModelAlias} catalogueModels={catalogueModels} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
             </div>
         </div>
