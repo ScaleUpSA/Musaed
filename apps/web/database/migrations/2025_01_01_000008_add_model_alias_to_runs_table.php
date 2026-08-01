@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('runs', function (Blueprint $table) {
-            $table->string('model_alias')->default('assistant')->after('policy_version');
+            $table->string('model_alias')->nullable()->after('policy_version');
         });
     }
 
