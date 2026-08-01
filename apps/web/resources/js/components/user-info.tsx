@@ -15,13 +15,13 @@ export function UserInfo({ user, showEmail = false, showName = true }: { user: U
             </Avatar>
             {showName && (
                 <div className="grid flex-1 text-start text-sm leading-tight">
-                    <span dir="auto" className="truncate font-medium">
+                    <bdi dir="auto" className="block truncate font-medium">
                         {user.name}
-                    </span>
+                    </bdi>
                     {showEmail && (
-                        <span dir="auto" className="text-muted-foreground truncate text-xs">
+                        <bdi dir="auto" className="text-muted-foreground block truncate text-xs">
                             {user.email}
-                        </span>
+                        </bdi>
                     )}
                 </div>
             )}

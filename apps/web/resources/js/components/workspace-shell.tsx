@@ -67,8 +67,8 @@ export function ConversationRail({ conversations, selectedId, onSelect, onNew, c
                         <CircleDot className="size-4" />
                     </div>
                     {!collapsed && <span className="min-w-0">
-                        <span dir="auto" className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</span>
-                        {conversation.preview && <span dir="auto" className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</span>}
+                        <bdi dir="auto" className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</bdi>
+                        {conversation.preview && <bdi dir="auto" className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</bdi>}
                     </span>}
                 </button>)}
             </div>
@@ -144,13 +144,15 @@ function ToolActivity({ state }: { state: RunViewState }) {
     );
 }
 
-function ConversationView({ state, messages, title, model, catalogueModels, onSubmit }: { state: RunViewState; messages: ConversationMessage[]; title: string | null; model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null; catalogueModels: CatalogueModel[]; onSubmit: (message: string) => void }) {
+function ConversationView({ state, messages, title, currentModelAlias, catalogueModels, onSubmit }: { state: RunViewState; messages: ConversationMessage[]; title: string | null; currentModelAlias: string | null; catalogueModels: CatalogueModel[]; onSubmit: (message: string) => void }) {
     const t = useTranslations();
     const { locale } = usePage<SharedData>().props;
     const [draft, setDraft] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
     const pinnedRef = useRef(true);
     const running = state.status === 'running';
+    const runningModel = currentModelAlias ? catalogueModels.find((item) => item.alias === currentModelAlias) : null;
+    const runningModelLabel = runningModel ? resolveMessageModelLabel(catalogueModels, currentModelAlias, locale) ?? runningModel.label_en : null;
 
     useEffect(() => {
         const element = scrollRef.current;
@@ -230,10 +232,10 @@ function ConversationView({ state, messages, title, model, catalogueModels, onSu
                                 <span className="bg-primary size-1.5 rounded-full" />
                                 {t('workspace.assistant')}
                             </div>
-                            {model && (
+                            {runningModel && runningModelLabel && (
                                 <p className="text-muted-foreground mb-2 text-xs">
-                                    {t('workspace.answered_by').replace(':model', model.label)}
-                                    {model.implementation === 'fake' && ` · ${t('workspace.placeholder_model')}`}
+                                    {t('workspace.answered_by').replace(':model', runningModelLabel)}
+                                    {runningModel.implementation === 'fake' && ` · ${t('workspace.placeholder_model')}`}
                                 </p>
                             )}
                             <div dir="auto" className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
@@ -328,7 +330,7 @@ export default function WorkspaceShell({
     onSubmit,
     conversationId,
     conversations,
-    model,
+    currentModelAlias,
     catalogueModels,
 }: {
     state: RunViewState;
@@ -337,7 +339,7 @@ export default function WorkspaceShell({
     onSubmit: (message: string) => void;
     conversationId: string | null;
     conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
-    model: { alias: string; label: string; implementation: 'fake' | 'litellm' } | null;
+    currentModelAlias: string | null;
     catalogueModels: CatalogueModel[];
 }) {
     const [selectedId, setSelectedId] = useState<string | null>(conversationId);
@@ -389,7 +391,7 @@ export default function WorkspaceShell({
                     }}
                     onNew={() => router.visit('/workspace?new=1')}
                 />
-                    <ConversationView state={state} messages={messages} title={conversationTitle} model={model} catalogueModels={catalogueModels} onSubmit={onSubmit} />
+                    <ConversationView state={state} messages={messages} title={conversationTitle} currentModelAlias={currentModelAlias} catalogueModels={catalogueModels} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
             </div>
         </div>

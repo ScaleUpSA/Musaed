@@ -33,7 +33,7 @@ export default function Workspace({ conversations, catalogue_models, conversatio
                 onSubmit={run.startRun}
                 conversationId={run.conversationId}
                 conversations={conversations}
-                model={conversation?.model ?? null}
+                currentModelAlias={run.currentModelAlias}
                 catalogueModels={catalogue_models}
             />
         </AppLayout>

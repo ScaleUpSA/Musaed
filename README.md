@@ -76,6 +76,7 @@ Rationale in [`docs/adr/`](docs/adr/).
 
 ```bash
 cp .env.example .env
+php apps/web/artisan musaed:generate-envelope-keypair --write
 docker compose --env-file .env -f docker/compose.yml up -d
 ```
 

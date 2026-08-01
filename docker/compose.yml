@@ -46,7 +46,7 @@ services:
       AGENT_EVENTS_URL: http://web:8000/internal/runs/events
       AGENT_AUDIT_URL: http://web:8000/internal/runs/events
       AGENT_APPROVALS_URL: http://web:8000/internal/runs/events
-      AGENT_ENVELOPE_PRIVATE_KEY: ${AGENT_ENVELOPE_PRIVATE_KEY:?AGENT_ENVELOPE_PRIVATE_KEY must be set}
+      AGENT_ENVELOPE_PRIVATE_KEY: ${AGENT_ENVELOPE_PRIVATE_KEY:?Run php apps/web/artisan musaed:generate-envelope-keypair --write from the repository root}
       RUN_ENVELOPE_LIFETIME_SECONDS: ${RUN_ENVELOPE_LIFETIME_SECONDS:-300}
     ports:
       - "${WEB_PORT:-8000}:8000"
@@ -64,7 +64,7 @@ services:
       PORT: 3001
       AGENT_RUN_ROOT: ${AGENT_RUN_ROOT:-/var/lib/musaed/runs}
       LITELLM_URL: ${LITELLM_URL:-http://litellm:4000}
-      AGENT_ENVELOPE_PUBLIC_KEY: ${AGENT_ENVELOPE_PUBLIC_KEY:?AGENT_ENVELOPE_PUBLIC_KEY must be set}
+      AGENT_ENVELOPE_PUBLIC_KEY: ${AGENT_ENVELOPE_PUBLIC_KEY:?Run php apps/web/artisan musaed:generate-envelope-keypair --write from the repository root}
       AGENT_ENVELOPE_CLOCK_SKEW_SECONDS: ${AGENT_ENVELOPE_CLOCK_SKEW_SECONDS:-30}
     ports:
       - "${AGENT_PORT:-3001}:3001"
