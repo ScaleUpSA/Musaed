@@ -55,6 +55,14 @@ return [
                 'label_en' => 'Musaed Placeholder',
                 'label_ar' => 'مساعد تجريبي مؤقت',
             ],
+            [
+                'alias' => 'deepseek',
+                'litellm_model' => 'deepseek',
+                'implementation' => 'litellm',
+                'enabled' => filled(env('DEEPSEEK_API_KEY')),
+                'label_en' => 'DeepSeek Chat',
+                'label_ar' => 'ديب سيك للمحادثة',
+            ],
         ],
     ],
 

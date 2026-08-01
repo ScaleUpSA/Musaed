@@ -99,6 +99,47 @@ class RunLifecycleTest extends TestCase
         $this->assertDatabaseCount('runs', 0);
     }
 
+    public function test_configured_real_model_is_preferred_over_the_placeholder(): void
+    {
+        config([
+            'services.models.catalogue' => [
+                [
+                    'alias' => 'assistant',
+                    'litellm_model' => 'fake-model',
+                    'implementation' => 'fake',
+                    'enabled' => true,
+                    'label_en' => 'Musaed Placeholder',
+                    'label_ar' => 'مساعد تجريبي مؤقت',
+                ],
+                [
+                    'alias' => 'deepseek',
+                    'litellm_model' => 'deepseek',
+                    'implementation' => 'litellm',
+                    'enabled' => true,
+                    'label_en' => 'DeepSeek Chat',
+                    'label_ar' => 'ديب سيك للمحادثة',
+                ],
+            ],
+        ]);
+        (new ModelCatalogueSeeder)->run();
+
+        $user = User::factory()->create();
+        $envelope = null;
+        Http::fake(function ($request) use (&$envelope) {
+            $envelope = $request->data();
+
+            return Http::response(['status' => 'accepted'], 202);
+        });
+
+        $this->actingAs($user)->postJson('/runs', [
+            'message' => 'Use the configured model.',
+        ])->assertAccepted();
+
+        $this->assertSame('deepseek', $envelope['modelAlias']);
+        $this->assertSame('deepseek', $envelope['modelName']);
+        $this->assertSame('litellm', $envelope['modelImplementation']);
+    }
+
     public function test_provider_failure_marks_run_failed_and_persists_the_readable_error(): void
     {
         $user = User::factory()->create();

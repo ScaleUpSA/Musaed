@@ -83,6 +83,7 @@ services:
     environment:
       LITELLM_MASTER_KEY: ${LITELLM_MASTER_KEY:-sk-local-development-only}
       LITELLM_SALT_KEY: ${LITELLM_SALT_KEY:-change-me-too}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-musaed}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/litellm
     volumes:
       - ./litellm.config.yaml:/app/config.yaml:ro
