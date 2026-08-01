@@ -10,7 +10,7 @@ fi
 
 php artisan config:clear
 php artisan migrate --force
-php artisan db:seed --class=Database\\Seeders\\DatabaseSeeder --force
+php artisan db:seed --class=Database\\Seeders\\ModelCatalogueSeeder --force
 php artisan config:cache
 
 exec "$@"
