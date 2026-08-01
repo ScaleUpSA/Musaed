@@ -39,6 +39,7 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-musaed}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       REDIS_HOST: redis
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       AGENT_URL: http://agent:3001
       AGENT_EVENTS_URL: http://web:8000/internal/runs/events
       AGENT_AUDIT_URL: http://web:8000/internal/runs/events
