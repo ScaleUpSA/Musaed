@@ -63,6 +63,10 @@ class RunLifecycleTest extends TestCase
         ));
         $this->assertArrayNotHasKey('providerKey', $envelope);
         $this->assertArrayNotHasKey('apiKey', $envelope);
+        $this->assertSame('assistant', $envelope['modelAlias']);
+        $this->assertSame('fake-model', $envelope['modelName']);
+        $this->assertSame('fake', $envelope['modelImplementation']);
+        $this->assertDatabaseHas('runs', ['id' => $run->id, 'model_alias' => 'assistant']);
         $callbackHeaders = ['X-Run-Callback-Token' => $envelope['callbacks']['callbackToken']];
 
         foreach ([
@@ -79,6 +83,42 @@ class RunLifecycleTest extends TestCase
             'content' => 'A persisted answer.',
         ]);
         $this->assertSame('completed', $run->fresh()->status->value);
+    }
+
+    public function test_model_outside_the_resolved_catalogue_is_refused(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->postJson('/runs', [
+            'model' => 'not-configured',
+            'message' => 'This should not run.',
+        ])->assertUnprocessable()->assertJsonValidationErrors('model');
+
+        $this->assertDatabaseCount('runs', 0);
+    }
+
+    public function test_provider_failure_marks_run_failed_and_persists_the_readable_error(): void
+    {
+        $user = User::factory()->create();
+        Http::fake(['http://agent.test/*' => Http::response(['status' => 'accepted'], 202)]);
+
+        $this->actingAs($user)->postJson('/runs', ['message' => 'Provider failure'])->assertAccepted();
+        $run = Run::firstOrFail();
+        $token = Http::recorded()[0][0]->data()['callbacks']['callbackToken'];
+
+        $this->withHeader('X-Run-Callback-Token', $token)
+            ->postJson('/internal/runs/events', [
+                'type' => 'run.failed',
+                'runId' => $run->id,
+                'error' => 'Model provider rate limit reached.',
+                'at' => now()->toISOString(),
+            ])->assertAccepted();
+
+        $this->assertSame('failed', $run->fresh()->status->value);
+        $this->assertDatabaseHas('run_events', [
+            'run_id' => $run->id,
+            'type' => 'run.failed',
+        ]);
     }
 
     public function test_callback_credentials_are_run_scoped_and_expire_on_completion(): void

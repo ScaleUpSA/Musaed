@@ -20,7 +20,7 @@ class RunController extends Controller
     {
         $user = $request->user();
         $callbackToken = bin2hex(random_bytes(32));
-        $resolved = $policy->resolve($user);
+        $resolved = $policy->resolve($user, $request->string('model')->toString() ?: null);
         $conversation = $request->filled('conversation_id')
             ? $user->conversations()->findOrFail($request->string('conversation_id')->toString())
             : $user->conversations()->create([
@@ -39,6 +39,7 @@ class RunController extends Controller
                 'user_id' => $user->id,
                 'status' => RunStatus::Queued,
                 'policy_version' => $resolved['policyVersion'],
+                'model_alias' => $resolved['modelAlias'],
                 'callback_token_hash' => hash('sha256', $callbackToken),
             ]);
 
@@ -53,6 +54,9 @@ class RunController extends Controller
             'conversationId' => $conversation->id,
             'prompt' => $request->string('message')->toString(),
             'allowedModels' => $resolved['allowedModels'],
+            'modelAlias' => $resolved['modelAlias'],
+            'modelName' => $resolved['modelName'],
+            'modelImplementation' => $resolved['modelImplementation'],
             'workingDirectory' => config('services.agent.run_root')."/{$run->id}/workspace",
             'agentDirectory' => config('services.agent.run_root')."/{$run->id}/agent",
             'allowedTools' => $resolved['allowedTools'],

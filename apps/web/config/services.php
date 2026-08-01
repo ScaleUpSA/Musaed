@@ -45,4 +45,17 @@ return [
         'envelope_lifetime_seconds' => (int) env('RUN_ENVELOPE_LIFETIME_SECONDS', 300),
     ],
 
+    'models' => [
+        'catalogue' => [
+            [
+                'alias' => 'assistant',
+                'litellm_model' => 'fake-model',
+                'implementation' => 'fake',
+                'enabled' => true,
+                'label_en' => 'Musaed Assistant',
+                'label_ar' => 'مساعد مسعد',
+            ],
+        ],
+    ],
+
 ];

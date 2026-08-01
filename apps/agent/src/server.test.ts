@@ -10,6 +10,7 @@ import { type AgentConfig, loadAgentConfig } from "./config.js";
 import { buildServer } from "./server.js";
 import { prepareRun } from "./run.js";
 
+const modelImplementation: "litellm" = "litellm";
 const keyPair = generateKeyPairSync("ed25519");
 const publicKey = keyPair.publicKey.export({ format: "der", type: "spki" }).subarray(-32).toString("base64");
 const privateKey = keyPair.privateKey;
@@ -22,6 +23,9 @@ const claims = {
   conversationId: "conversation-1",
   prompt: "Summarize the request",
   allowedModels: ["gpt-4o-mini"],
+  modelAlias: "assistant",
+  modelName: "gpt-4o-mini",
+  modelImplementation,
   workingDirectory: "/tmp/musaed-run-workspace",
   agentDirectory: "/tmp/musaed-run-agent",
   allowedTools: [],
@@ -60,6 +64,7 @@ const createConfig = (agentRunRoot: string): AgentConfig => ({
   litellmUrl: "http://litellm:4000",
   envelopePublicKey: publicKey,
   envelopeClockSkewMs: 30_000,
+  modelRequestTimeoutMs: 30_000,
 });
 
 describe("agent service", () => {

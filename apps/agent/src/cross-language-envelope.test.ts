@@ -9,6 +9,8 @@ import { resolve } from "node:path";
 import { canonicalizeRunEnvelope } from "@musaed/contracts";
 import { expect, it } from "vitest";
 
+const modelImplementation: "litellm" = "litellm";
+
 const claims = {
   runId: "run-cross-language",
   userId: "user-1",
@@ -17,6 +19,9 @@ const claims = {
   conversationId: "conversation-1",
   prompt: "Summarize the request",
   allowedModels: ["gpt-4o-mini"],
+  modelAlias: "assistant",
+  modelName: "gpt-4o-mini",
+  modelImplementation,
   workingDirectory: "/var/lib/musaed/runs/run-cross-language/workspace",
   agentDirectory: "/var/lib/musaed/runs/run-cross-language/agent",
   allowedTools: ["read"],

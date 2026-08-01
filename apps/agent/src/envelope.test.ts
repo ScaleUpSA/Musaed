@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import type { AgentConfig } from "./config.js";
 import { RunEnvelopePolicyError, verifyRunEnvelope } from "./envelope.js";
 
+const modelImplementation: "litellm" = "litellm";
+
 const createKeys = () => {
   const keyPair = generateKeyPairSync("ed25519");
   const publicKey = keyPair.publicKey
@@ -27,6 +29,9 @@ const claims = {
   conversationId: "conversation-1",
   prompt: "Summarize the request",
   allowedModels: ["gpt-4o-mini"],
+  modelAlias: "assistant",
+  modelName: "gpt-4o-mini",
+  modelImplementation,
   workingDirectory: "/tmp/musaed-run-workspace",
   agentDirectory: "/tmp/musaed-run-agent",
   allowedTools: ["read"],
@@ -66,6 +71,7 @@ const configFor = (publicKey: string): AgentConfig => ({
   litellmUrl: "http://litellm:4000",
   envelopePublicKey: publicKey,
   envelopeClockSkewMs: 30_000,
+  modelRequestTimeoutMs: 30_000,
 });
 
 describe("run envelope verification", () => {

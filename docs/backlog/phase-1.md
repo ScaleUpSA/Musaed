@@ -38,13 +38,17 @@ Verify the envelope, then build a pi session with explicit `cwd` and `agentDir`,
 
 **Implemented in this phase:** the runtime requires its public verification key
 in every environment and refuses to construct a session until signature and
-expiry checks pass. The current model boundary is a clearly named
-`completeFakeResponse`; no external provider call is made until provider
-selection and credentials are configured. The current LiteLLM value is
-explicitly fake (`fake-litellm-key-*`), not a working virtual key; real
+expiry checks pass. The runtime now selects from a signed catalogue entry. The
+seeded `assistant` entry uses the clearly named `completeFakeResponse`
+implementation so no provider credential is needed. LiteLLM entries stream
+real chat completions when configured; the current LiteLLM value remains
+explicitly fake (`fake-litellm-key-*`), not a working virtual key. Real
 virtual-key minting arrives with provider integration.
 
-**Done when:** a run completes against LiteLLM; a test proves the session reads nothing from `~/.pi` and writes nothing outside its run directory; two concurrent runs with different envelopes do not observe each other's models, credentials or files.
+**Done when:** a run completes against the configured model implementation; a
+test proves the session reads nothing from `~/.pi` and writes nothing outside
+its run directory; two concurrent runs with different envelopes do not observe
+each other's models, credentials or files.
 
 ## 5. Event streaming to React
 
@@ -53,8 +57,10 @@ an Inertia page rendering a live token stream.
 
 **Implemented in this phase:** runtime pushes events to Laravel's existing
 callback URL, and the browser polls persisted events so refreshes can rebuild
-the transcript. The provider is intentionally fake until a real provider is
-chosen. Callbacks are authenticated with a per-run credential carried in the
+the transcript. The seeded provider implementation is intentionally fake until
+a real model catalogue entry is configured. LiteLLM streaming failures are
+persisted as terminal `run.failed` events and shown as readable transcript
+errors. Callbacks are authenticated with a per-run credential carried in the
 signed envelope and invalidated when the run completes or fails.
 
 **Done when:** a user sends a message and sees streamed output; the stream survives a page refresh mid-run; a failed run surfaces an error rather than hanging.

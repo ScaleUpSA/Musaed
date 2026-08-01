@@ -11,7 +11,7 @@ import { isAbsolute, relative, resolve, sep } from "node:path";
 import type { AgentEvent, RunEnvelope } from "@musaed/contracts";
 
 import type { AgentConfig } from "./config.js";
-import { completeFakeResponse } from "./fake-provider.js";
+import { streamModelResponse } from "./model-provider.js";
 
 export interface PreparedRun {
   runId: string;
@@ -99,15 +99,15 @@ export async function prepareRun(
     api: "openai-completions",
     apiKey: envelope.litellmVirtualKey,
     baseUrl: config.litellmUrl,
-    models: envelope.allowedModels.map((id) => ({
-      id,
-      name: id,
+    models: [{
+      id: envelope.modelName,
+      name: envelope.modelName,
       reasoning: false,
       input: ["text"],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
       contextWindow: 128_000,
       maxTokens: 16_384,
-    })),
+    }],
   });
   const resourceLoader = new DefaultResourceLoader({
     cwd: workingDirectory,
@@ -151,16 +151,17 @@ export async function executeRun(
   try {
     await prepareRun(envelope, config);
     await emit({ type: "run.started", runId: envelope.runId, at: at() });
-    for await (const text of completeFakeResponse(envelope.prompt)) {
+    for await (const text of streamModelResponse(envelope, config)) {
       await emit({ type: "assistant.delta", runId: envelope.runId, text, at: at() });
     }
     await emit({ type: "run.completed", runId: envelope.runId, at: at() });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Model execution failed.";
     try {
       await emit({
         type: "run.failed",
         runId: envelope.runId,
-        error: "Run failed",
+        error: message,
         at: at(),
       });
     } catch {

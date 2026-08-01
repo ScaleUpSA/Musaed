@@ -117,11 +117,19 @@ The runtime pushes rather than Laravel polling because the executor already
 knows exactly when an event occurs and the callback coordinates are part of
 the signed envelope.
 
-The provider call is currently represented by the runtime's
-`completeFakeResponse` generator. It makes no external model request. When a
-provider is selected, real per-run virtual-key minting replaces the clearly
-fake `fake-litellm-key-*` envelope value as a configuration and provider
-integration change, without changing the control-plane or browser contracts.
+The control plane owns a database-backed model catalogue. Each entry has an
+employee-facing alias, a LiteLLM model name, an enabled flag, bilingual labels,
+and an implementation (`fake` or `litellm`). Group policy resolves enabled
+catalogue entries into the signed envelope, and each run records the selected
+alias for auditability. The seeded `assistant` entry uses the deliberately fake
+implementation, so a keyless installation remains end to end.
+
+The runtime streams a LiteLLM-compatible chat completion when the selected
+catalogue implementation is `litellm`; the fake implementation remains an
+explicit catalogue entry rather than an environment branch. Provider failures
+emit `run.failed` with a bounded, employee-readable message such as “Model
+provider rate limit reached.” Partial assistant output remains visible above
+the failure state, and the run is terminal rather than a stuck spinner.
 
 ## The run envelope
 
@@ -159,7 +167,7 @@ runtime.registerProvider("litellm", {
   api: "openai-completions",
   baseUrl: env.LITELLM_URL,
   apiKey: envelope.virtualKey,           // literal, request-scoped
-  models: envelope.allowedModels,
+  models: [{ id: envelope.modelName, name: envelope.modelName }],
 });
 
 const { session } = await createAgentSession({

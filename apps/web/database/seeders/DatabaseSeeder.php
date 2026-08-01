@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\ModelCatalogue;
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -13,6 +14,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        ModelCatalogue::syncConfigured();
+
         // User::factory(10)->create();
 
         User::factory()->create([

@@ -4,6 +4,7 @@ export interface AgentConfig {
   litellmUrl: string;
   envelopePublicKey: string;
   envelopeClockSkewMs: number;
+  modelRequestTimeoutMs: number;
 }
 
 const required = (env: NodeJS.ProcessEnv, name: string): string => {
@@ -39,11 +40,17 @@ export const loadAgentConfig = (env: NodeJS.ProcessEnv): AgentConfig => {
     throw new Error("LITELLM_URL must be a valid URL");
   }
 
+  const modelRequestTimeoutMs = Number(env.MODEL_REQUEST_TIMEOUT_MS ?? 30_000);
+  if (!Number.isInteger(modelRequestTimeoutMs) || modelRequestTimeoutMs < 1) {
+    throw new Error("MODEL_REQUEST_TIMEOUT_MS must be a positive integer");
+  }
+
   return {
     port: port(env),
     agentRunRoot: required(env, "AGENT_RUN_ROOT"),
     litellmUrl,
     envelopePublicKey,
     envelopeClockSkewMs: clockSkewSeconds * 1000,
+    modelRequestTimeoutMs,
   };
 };
