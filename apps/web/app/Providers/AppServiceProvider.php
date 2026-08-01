@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Support\RunEnvelope\RunEnvelopeSigner;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -11,7 +12,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(RunEnvelopeSigner::class, fn (): RunEnvelopeSigner => new RunEnvelopeSigner(
+            (string) config('services.agent.envelope_private_key'),
+            (int) config('services.agent.envelope_lifetime_seconds', 300),
+        ));
     }
 
     /**

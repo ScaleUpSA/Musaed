@@ -39,6 +39,10 @@ services:
       DB_USERNAME: ${POSTGRES_USER:-musaed}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
       REDIS_HOST: redis
+      AGENT_URL: http://agent:3001
+      AGENT_EVENTS_URL: http://web:8000/internal/runs/events
+      AGENT_AUDIT_URL: http://web:8000/internal/runs/events
+      AGENT_APPROVALS_URL: http://web:8000/internal/runs/events
       AGENT_ENVELOPE_PRIVATE_KEY: ${AGENT_ENVELOPE_PRIVATE_KEY:?AGENT_ENVELOPE_PRIVATE_KEY must be set}
       RUN_ENVELOPE_LIFETIME_SECONDS: ${RUN_ENVELOPE_LIFETIME_SECONDS:-300}
     ports:

@@ -1,6 +1,6 @@
 import {
     CheckCircle2,
-    ChevronRight,
+    ChevronLeft,
     CircleDot,
     CircleStop,
     FileText,
@@ -23,42 +23,42 @@ import { useTranslations } from '@/hooks/use-translations';
 import { cn } from '@/lib/utils';
 import { shouldStickToBottom, type RunViewState } from '@/lib/workspace-events';
 import { type SharedData } from '@/types';
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 
 type Conversation = {
     id: string;
-    title: string;
-    preview: string;
+    title: string | null;
+    preview: string | null;
 };
 
-const conversation: Conversation = {
-    id: 'launch-planning',
-    title: 'workspace.conversation_title',
-    preview: 'workspace.conversation_preview',
-};
-
-export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: string | null; onSelect: (id: string) => void; onNew: () => void }) {
+export function ConversationRail({ conversations, selectedId, onSelect, onNew, collapsed, onToggle }: { conversations: Conversation[]; selectedId: string | null; onSelect: (id: string) => void; onNew: () => void; collapsed: boolean; onToggle: () => void }) {
     const t = useTranslations();
     const { auth } = usePage<SharedData>().props;
 
     return (
         <aside className="bg-surface-subtle border-border/80 flex min-h-0 flex-col border-e">
-            <div className="border-border/80 flex items-center justify-between gap-3 border-b px-5 py-5">
-                <Link href="/workspace" className="flex min-w-0 items-center">
-                    <AppLogo />
+            <div className={cn('border-border/80 flex items-center gap-2 border-b py-5', collapsed ? 'flex-col px-2' : 'justify-between px-4')}>
+                <Link href="/workspace" className={cn('flex min-w-0 items-center', collapsed && 'justify-center')}>
+                    <AppLogo collapsed={collapsed} />
                 </Link>
                 <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onNew} aria-label={t('workspace.new_conversation')}>
                     <Plus className="size-4" />
                 </Button>
+                <Button variant="ghost" size="icon" className="size-9 shrink-0" onClick={onToggle} aria-label={t(collapsed ? 'workspace.rail_expand' : 'workspace.rail_collapse')}>
+                    <ChevronLeft className="size-4 rtl:rotate-180" />
+                </Button>
             </div>
-            <div className="px-4 pt-5 pb-2">
+            {!collapsed && <div className="px-4 pt-5 pb-2">
                 <p className="text-muted-foreground px-2 text-[0.7rem] font-semibold">{t('workspace.conversations')}</p>
-            </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-3">
-                <button
+            </div>}
+            <div className={cn('min-h-0 flex-1 overflow-y-auto', collapsed ? 'px-2' : 'px-3')}>
+                {conversations.map((conversation) => <button
+                    key={conversation.id}
                     type="button"
+                    aria-label={conversation.title ?? t('workspace.untitled_conversation')}
                     className={cn(
                         'group flex w-full items-start gap-3 rounded-xl p-3 text-start transition-colors',
+                        collapsed && 'justify-center px-2',
                         selectedId === conversation.id ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/70',
                     )}
                     onClick={() => onSelect(conversation.id)}
@@ -66,18 +66,18 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
                     <div className="bg-primary text-primary-foreground mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg">
                         <CircleDot className="size-4" />
                     </div>
-                    <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium">{t(conversation.title)}</span>
-                        <span className="text-muted-foreground mt-0.5 block truncate text-xs">{t(conversation.preview)}</span>
-                    </span>
-                </button>
+                    {!collapsed && <span className="min-w-0">
+                        <span dir="auto" className="block truncate text-sm font-medium">{conversation.title ?? t('workspace.untitled_conversation')}</span>
+                        {conversation.preview && <span dir="auto" className="text-muted-foreground mt-0.5 block truncate text-xs">{conversation.preview}</span>}
+                    </span>}
+                </button>)}
             </div>
-            <div className="border-border/80 border-t p-3">
+            <div className={cn('border-border/80 border-t', collapsed ? 'p-2' : 'p-3')}>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-auto w-full justify-start gap-3 rounded-xl px-3 py-3 text-start">
-                            <UserInfo user={auth.user} />
-                            <span className="text-muted-foreground ms-auto">•••</span>
+                        <Button variant="ghost" className={cn('h-auto w-full rounded-xl py-3 text-start', collapsed ? 'justify-center px-0' : 'justify-start gap-3 px-3')}>
+                            <UserInfo user={auth.user} showName={!collapsed} />
+                            {!collapsed && <span className="text-muted-foreground ms-auto">•••</span>}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-64 rounded-xl" align="end" side="top">
@@ -86,24 +86,6 @@ export function ConversationRail({ selectedId, onSelect, onNew }: { selectedId: 
                 </DropdownMenu>
             </div>
         </aside>
-    );
-}
-
-function EmptyConversation({ onSelect }: { onSelect: () => void }) {
-    const t = useTranslations();
-
-    return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-2 px-6 text-center">
-            <div className="bg-muted flex size-12 items-center justify-center rounded-full">
-                <CircleDot className="text-muted-foreground size-5" />
-            </div>
-            <h2 className="font-medium">{t('workspace.no_selection_title')}</h2>
-            <p className="text-muted-foreground max-w-xs text-sm">{t('workspace.no_selection_description')}</p>
-            <Button variant="outline" size="sm" onClick={onSelect}>
-                {t('workspace.conversations')}
-                <ChevronRight className="rtl:rotate-180" />
-            </Button>
-        </div>
     );
 }
 
@@ -145,7 +127,7 @@ function ToolActivity({ state }: { state: RunViewState }) {
                         ) : (
                             <CheckCircle2 className="text-muted-foreground size-3.5" />
                         )}
-                        <span className="truncate font-mono text-xs">{tool.name}</span>
+                        <span dir="auto" className="truncate font-mono text-xs">{tool.name}</span>
                     </span>
                     <span className="text-muted-foreground text-xs">
                         {t(
@@ -162,7 +144,7 @@ function ToolActivity({ state }: { state: RunViewState }) {
     );
 }
 
-function ConversationView({ state, messages, onSubmit }: { state: RunViewState; messages: string[]; onSubmit: (message: string) => void }) {
+function ConversationView({ state, messages, title, onSubmit }: { state: RunViewState; messages: { role: 'user' | 'assistant'; content: string }[]; title: string | null; onSubmit: (message: string) => void }) {
     const t = useTranslations();
     const [draft, setDraft] = useState('');
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -197,7 +179,7 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
         <section className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-center justify-between gap-3 border-b px-5 py-3">
                 <div className="flex items-center gap-3">
-                    <h1 className="font-semibold">{t('workspace.conversation_title')}</h1>
+                    <h1 dir="auto" className="font-semibold">{title ?? t('workspace.untitled_conversation')}</h1>
                     <RunStatus state={state} />
                 </div>
                 <span title={t('workspace.cancel_unavailable')}>
@@ -210,10 +192,10 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
 
             <div ref={scrollRef} onScroll={handleScroll} className="min-h-0 flex-1 overflow-y-auto px-5 py-6">
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
-                    {messages.map((message, index) => (
+                    {messages.filter((message) => message.role === 'user').map((message, index) => (
                         <div key={`${message}-${index}`} className="flex max-w-full flex-col items-end">
-                            <div className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
-                                {message}
+                            <div dir="auto" className="bg-muted/60 border-border/70 text-foreground max-w-[min(100%,36rem)] rounded-2xl rounded-ee-sm border px-4 py-3 text-sm leading-7">
+                                {message.content}
                             </div>
                         </div>
                     ))}
@@ -224,7 +206,7 @@ function ConversationView({ state, messages, onSubmit }: { state: RunViewState; 
                                 <span className="bg-primary size-1.5 rounded-full" />
                                 {t('workspace.assistant')}
                             </div>
-                            <div className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
+                            <div dir="auto" className="text-foreground max-w-[min(100%,48rem)] text-[0.95rem] leading-8 whitespace-pre-wrap">
                                 {state.assistantText}
                             </div>
                         </div>
@@ -279,8 +261,8 @@ function ArtifactPanel({ open, onToggle }: { open: boolean; onToggle: () => void
 
     if (!open) {
         return (
-            <aside className="bg-muted/20 flex items-start justify-center border-s p-3">
-                <Button variant="outline" size="icon" onClick={onToggle} aria-label={t('workspace.panel_open')}>
+            <aside className="bg-card flex items-start justify-start border-s p-0">
+                <Button variant="outline" size="icon" className="rounded-s-none border-s-0" onClick={onToggle} aria-label={t('workspace.panel_open')}>
                     <PanelRightOpen className="rtl:rotate-180" />
                 </Button>
             </aside>
@@ -312,14 +294,33 @@ function ArtifactPanel({ open, onToggle }: { open: boolean; onToggle: () => void
 export default function WorkspaceShell({
     state,
     messages,
+    conversationTitle,
     onSubmit,
+    conversationId,
+    conversations,
 }: {
     state: RunViewState;
-    messages: string[];
+    messages: { role: 'user' | 'assistant'; content: string }[];
+    conversationTitle: string | null;
     onSubmit: (message: string) => void;
+    conversationId: string | null;
+    conversations: { id: string; title: string | null; preview: string | null; message_count: number }[];
 }) {
-    const [selectedId, setSelectedId] = useState<string | null>(conversation.id);
-    const [panelOpen, setPanelOpen] = useState(true);
+    const [selectedId, setSelectedId] = useState<string | null>(conversationId);
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [railCollapsed, setRailCollapsed] = useState(
+        () => typeof window !== 'undefined' && window.localStorage.getItem('musaed.rail-collapsed') === 'true',
+    );
+
+    useEffect(() => {
+        window.localStorage.setItem('musaed.rail-collapsed', String(railCollapsed));
+    }, [railCollapsed]);
+
+    useEffect(() => {
+        if (state.tools.length > 0) {
+            setPanelOpen(true);
+        }
+    }, [state.tools.length]);
 
     return (
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -327,16 +328,30 @@ export default function WorkspaceShell({
                 className={cn(
                     'bg-card border-border/80 grid min-h-0 flex-1 overflow-hidden rounded-2xl border shadow-[0_16px_50px_-36px_rgba(17,81,180,0.55)]',
                     panelOpen
-                        ? 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_minmax(15rem,20rem)]'
-                        : 'grid-cols-[minmax(13rem,16rem)_minmax(0,1fr)_auto]',
+                        ? railCollapsed
+                            ? 'grid-cols-[4.5rem_minmax(0,1fr)_minmax(15rem,20rem)]'
+                            : 'grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)_minmax(15rem,20rem)]'
+                        : railCollapsed
+                          ? 'grid-cols-[4.5rem_minmax(0,1fr)_auto]'
+                          : 'grid-cols-[minmax(11rem,14rem)_minmax(0,1fr)_auto]',
                 )}
             >
-                <ConversationRail selectedId={selectedId} onSelect={setSelectedId} onNew={() => setSelectedId(null)} />
-                {selectedId ? (
-                    <ConversationView state={state} messages={messages} onSubmit={onSubmit} />
-                ) : (
-                    <EmptyConversation onSelect={() => setSelectedId(conversation.id)} />
-                )}
+                <ConversationRail
+                    conversations={conversations.map((item) => ({
+                        id: item.id,
+                        title: item.title,
+                        preview: item.preview,
+                    }))}
+                    selectedId={selectedId}
+                    collapsed={railCollapsed}
+                    onToggle={() => setRailCollapsed((collapsed) => !collapsed)}
+                    onSelect={(id) => {
+                        setSelectedId(id);
+                        router.visit(`/workspace?conversation_id=${encodeURIComponent(id)}`, { preserveScroll: true });
+                    }}
+                    onNew={() => router.visit('/workspace')}
+                />
+                <ConversationView state={state} messages={messages} title={conversationTitle} onSubmit={onSubmit} />
                 <ArtifactPanel open={panelOpen} onToggle={() => setPanelOpen((open) => !open)} />
             </div>
         </div>

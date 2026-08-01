@@ -10,7 +10,7 @@ export default [
       parser: tsParser,
     },
     rules: {
-      "no-unused-vars": "error",
+      "no-unused-vars": ["error", { args: "none" }],
     },
   },
 ];

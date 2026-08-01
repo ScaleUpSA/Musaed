@@ -8,9 +8,10 @@ import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 import { lstat, mkdir, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
-import type { RunEnvelope } from "@musaed/contracts";
+import type { AgentEvent, RunEnvelope } from "@musaed/contracts";
 
 import type { AgentConfig } from "./config.js";
+import { completeFakeResponse } from "./fake-provider.js";
 
 export interface PreparedRun {
   runId: string;
@@ -138,4 +139,32 @@ export async function prepareRun(
     agentDir: agentDirectory,
     status: "prepared",
   };
+}
+
+export async function executeRun(
+  envelope: RunEnvelope,
+  config: AgentConfig,
+  emit: (event: AgentEvent) => Promise<void>,
+): Promise<void> {
+  const at = () => new Date().toISOString();
+
+  try {
+    await prepareRun(envelope, config);
+    await emit({ type: "run.started", runId: envelope.runId, at: at() });
+    for await (const text of completeFakeResponse(envelope.prompt)) {
+      await emit({ type: "assistant.delta", runId: envelope.runId, text, at: at() });
+    }
+    await emit({ type: "run.completed", runId: envelope.runId, at: at() });
+  } catch {
+    try {
+      await emit({
+        type: "run.failed",
+        runId: envelope.runId,
+        error: "Run failed",
+        at: at(),
+      });
+    } catch {
+      // The control plane may be unavailable while reporting the failure.
+    }
+  }
 }
