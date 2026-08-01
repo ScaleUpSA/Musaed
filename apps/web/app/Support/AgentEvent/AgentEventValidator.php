@@ -23,7 +23,7 @@ final class AgentEventValidator
 
         return Validator::make($payload, $rules + match ($payload['type']) {
             'assistant.delta' => [
-                'text' => ['required', 'string'],
+                'text' => ['present', 'string'],
             ],
             'tool.called' => [
                 'toolName' => ['required', 'string'],

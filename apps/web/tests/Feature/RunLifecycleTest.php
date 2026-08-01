@@ -282,6 +282,15 @@ class RunLifecycleTest extends TestCase
             ->assertUnauthorized()
             ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
 
+        $this->withHeader('X-Run-Callback-Token', $firstToken)
+            ->postJson('/internal/runs/events', [
+                'type' => 'assistant.delta',
+                'runId' => $firstRun->id,
+                'text' => ' ',
+                'at' => now()->toISOString(),
+            ])
+            ->assertAccepted();
+
         $this->withHeader('X-Run-Callback-Token', 'forged')
             ->postJson('/internal/runs/events', [
                 ...$event,
