@@ -12,7 +12,7 @@ import type { RunEnvelope } from "@musaed/contracts";
 import type { AgentConfig } from "./config.js";
 import { startFakeProvider } from "./fake-provider.js";
 
-type RuntimeEvent =
+export type RuntimeEvent =
   | { type: "assistant.delta"; text: string }
   | { type: "tool.called"; toolName: string; toolCallId: string }
   | { type: "tool.completed"; toolName: string; toolCallId: string; isError: boolean }
@@ -129,7 +129,7 @@ export const createAgentRuntime = async (
               type: "tool.completed",
               toolName: event.toolName,
               toolCallId: event.toolCallId,
-              isError: event.isError || blockedToolCalls.has(event.toolCallId),
+              isError: event.isError,
             });
           } else if (event.type === "agent_end") {
             stopReason = [...event.messages]

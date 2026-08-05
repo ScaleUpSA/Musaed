@@ -1,4 +1,4 @@
-# ADR 0012: Drive the pi loop and enforce envelope tool authority
+# ADR 0010: Drive the pi loop and enforce envelope tool authority
 
 ## Status
 

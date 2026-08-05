@@ -30,6 +30,10 @@ export class RunPathPolicyError extends Error {
   }
 }
 
+const assertNever = (value: never): never => {
+  throw new Error(`Unexpected runtime event: ${String(value)}`);
+};
+
 const isOutsideRoot = (root: string, candidate: string): boolean => {
   const candidateRelative = relative(root, candidate);
   return (
@@ -128,14 +132,46 @@ export async function executeRun(
       pendingEvents = pendingEvents.then(() => emit(event));
     };
     const outcome = await prepared.runtime.run(envelope.prompt, (event) => {
-      if (event.type === "assistant.delta") {
-        enqueue({ type: "assistant.delta", runId: envelope.runId, text: event.text, at: at() });
-      } else if (event.type === "tool.called") {
-        enqueue({ type: "tool.called", runId: envelope.runId, toolName: event.toolName, toolCallId: event.toolCallId, at: at() });
-      } else if (event.type === "tool.completed") {
-        enqueue({ type: "tool.completed", runId: envelope.runId, toolName: event.toolName, toolCallId: event.toolCallId, isError: event.isError, at: at() });
-      } else {
-        enqueue({ type: "tool.blocked", runId: envelope.runId, toolName: event.toolName, toolCallId: event.toolCallId, reason: event.reason, at: at() });
+      switch (event.type) {
+        case "assistant.delta":
+          enqueue({
+            type: "assistant.delta",
+            runId: envelope.runId,
+            text: event.text,
+            at: at(),
+          });
+          break;
+        case "tool.called":
+          enqueue({
+            type: "tool.called",
+            runId: envelope.runId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            at: at(),
+          });
+          break;
+        case "tool.completed":
+          enqueue({
+            type: "tool.completed",
+            runId: envelope.runId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            isError: event.isError,
+            at: at(),
+          });
+          break;
+        case "tool.blocked":
+          enqueue({
+            type: "tool.blocked",
+            runId: envelope.runId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            reason: event.reason,
+            at: at(),
+          });
+          break;
+        default:
+          assertNever(event);
       }
     });
     await pendingEvents;
