@@ -1,6 +1,8 @@
-# 10. Observation log and read/write governance
+# ADR 0010: Observation log and read/write governance
 
-Date: 2026-08-05 · Status: accepted
+## Status
+
+Accepted.
 
 ## Context
 
@@ -10,19 +12,24 @@ artifacts. Once sharing exists, an artifact can launder data to a recipient who
 could not have read the source directly. Retrofitting observation call sites
 after sharing exists would be expensive and incomplete.
 
-Cloudflare OS makes the distinction explicit. Its MCP trust boundary says:
+The study used local read-only clones of `cloudflare/cloudflare-os` and
+`cloudflare/cloudflare-os-starter`. The standalone clone was at commit
+`e1ab8fbd4f609aff7ede9d490bafe1bcf9b2a682`; the starter pins its
+`cloudflare-os` submodule to `bf7f762d7fa73553284d731ab6a978d3ea17be24`.
+
+Cloudflare OS's MCP trust boundary says:
 
 > “a tool the server declares `readOnlyHint: true` runs as an observation,
 > everything else is queued for approval”
 
+Source: `cloudflare/cloudflare-os:AGENTS.md:28`.
+
 Its action contract also explains why an approval-required turn must stop:
 
-> “an agent that keeps going would observe a world where its action ‘didn't
-> happen’”
+> “an agent that keeps going would observe a world where
+> its action "didn't happen"”
 
-The source evidence is in
-`/home/ubuntu/research/cloudflare-os/AGENTS.md` and
-`/home/ubuntu/research/cloudflare-os/packages/mcp-shared/src/tools.ts`.
+Source: `cloudflare/cloudflare-os:packages/workshop-shared/src/gatekeeper.ts:994-1001`.
 
 Musaed has no sharing, collaborator, or artifact-visibility enforcement yet.
 There is therefore nothing for an observation check to protect today. The

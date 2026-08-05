@@ -2,14 +2,17 @@
 
 ## Scope and conclusion
 
-This study used read-only clones of:
+This study used local read-only clones of:
 
-- `/home/ubuntu/research/cloudflare-os`
-- `/home/ubuntu/research/cloudflare-os-starter`
+- `cloudflare/cloudflare-os`
+- `cloudflare/cloudflare-os-starter`
 
-The upstream code studied through the starter is recorded at submodule commit
-`bf7f762d7fa73553284d731ab6a978d3ea17be24`. The comparison uses source paths
-and short quotations, not Cloudflare blog or marketing claims.
+The standalone `cloudflare/cloudflare-os` clone studied here is at commit
+`e1ab8fbd4f609aff7ede9d490bafe1bcf9b2a682`. The starter's `cloudflare-os`
+submodule points to commit
+`bf7f762d7fa73553284d731ab6a978d3ea17be24`. The comparison uses
+upstream-relative source paths and short quotations, not Cloudflare blog or
+marketing claims.
 
 Cloudflare OS is a useful governance reference, not a portable Musaed runtime.
 Its central ideas worth adopting are observation recording, a read/write tool
@@ -20,17 +23,25 @@ onto Musaed's Laravel control plane, Node runtime, and rootless Podman broker.
 ## What they built
 
 The standalone repository is a pnpm monorepo named `gadgets`, with
-`packages/*` workspaces (`package.json`, `pnpm-workspace.yaml`). Its major
+`packages/*` workspaces
+(`cloudflare/cloudflare-os:package.json:1-20`,
+`cloudflare/cloudflare-os:pnpm-workspace.yaml:1-4`). Its major
 boundaries are:
 
-- `packages/workshop-backend`: the kernel, agent orchestration, workspace
+- `cloudflare/cloudflare-os:packages/workshop-backend:1-2`: the kernel, agent
+  orchestration, workspace
   state, sharing, action/observation records, and model routing;
-- `packages/workshop-frontend`: the browser SPA;
-- `packages/workshop-shared`: RPC/API and gatekeeper contracts;
-- `packages/gatekeeper-*`: separate external-service adapters;
-- `packages/gatekeeper-context`: context collections and skills;
-- `packages/mcp-shared`: MCP client and approval classification;
-- `packages/router`, `typed-storage`, and deployment/test packages.
+- `cloudflare/cloudflare-os:packages/workshop-frontend:1-2`: the browser SPA;
+- `cloudflare/cloudflare-os:packages/workshop-shared:1-2`: RPC/API and gatekeeper
+  contracts;
+- `cloudflare/cloudflare-os:packages/gatekeeper-*:1-2`: separate external-service
+  adapters;
+- `cloudflare/cloudflare-os:packages/gatekeeper-context:1-2`: context collections
+  and skills;
+- `cloudflare/cloudflare-os:packages/mcp-shared:1-2`: MCP client and approval
+  classification;
+- `cloudflare/cloudflare-os:packages/router:1-2`, `typed-storage`, and
+  deployment/test packages.
 
 The repository is approximately 813 files and 22 MB in the shallow clone.
 `workshop-backend` is approximately 74 TypeScript files and 41,000 lines;
@@ -39,9 +50,13 @@ The repository is approximately 813 files and 22 MB in the shallow clone.
 inspection measurements, not upstream project metrics.
 
 The starter is a thin deployment/customization repository. Its custom
-packages are `packages/custom-gatekeeper` and `packages/error-reporter`; the
-upstream OS is the submodule. Its deployment files are under `scripts/`,
-`deployment.jsonc`, and `docs/`.
+packages are
+`cloudflare/cloudflare-os-starter:packages/custom-gatekeeper` and
+`cloudflare/cloudflare-os-starter:packages/error-reporter`; the upstream OS is
+the submodule. Its deployment files are under
+`cloudflare/cloudflare-os-starter:scripts/`,
+`cloudflare/cloudflare-os-starter:deployment.jsonc`, and
+`cloudflare/cloudflare-os-starter:docs/`.
 
 ## Why the runtime is not portable to Musaed
 
@@ -50,32 +65,46 @@ The Cloudflare README says:
 > “Cloudflare OS is built on Cloudflare Workers, making heavy use of
 > Durable Objects, Dynamic Workers, and Facets”
 
-at `/home/ubuntu/research/cloudflare-os/README.md:116-118`.
-`packages/workshop-backend` imports `DurableObject`, `WorkerEntrypoint`, and
+(`cloudflare/cloudflare-os:README.md:116-118`).
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:1-12`
+imports `DurableObject`,
+`WorkerEntrypoint`, and
 native Worker RPC types from `cloudflare:workers`. Workspace state is a
 Durable Object; gatekeepers install Worker facets; and storage uses Durable
 Object typed storage rather than PostgreSQL.
 
 Generated agent code is loaded as a Dynamic Worker in
-`packages/workshop-backend/src/overseer.ts:5370-5489`. Its definition sets:
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:5370-5489`.
+Its definition sets:
 
 > `globalOutbound: null`
+
+Source:
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:5408-5412`.
 
 and compatibility flags including:
 
 > `"disallow_importable_env"`
 
+Source:
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:5394-5401`.
+
 This is a Worker runtime isolation primitive, not a container interface that
 can be transferred to Podman.
 
 The frontend/backend boundary is Cap'n Web RPC over a persistent WebSocket.
-`packages/workshop-frontend/src/main.tsx` calls
+`cloudflare/cloudflare-os:packages/workshop-frontend/src/main.tsx:70-74` calls
 `newWebSocketRpcSession<PublicApi>(wsUrl)`. Gadget/browser isolation also uses
 sandboxed iframes and `postMessage()`.
 
+Source:
+`cloudflare/cloudflare-os:packages/workshop-frontend/src/main.tsx:70-74`;
+`cloudflare/cloudflare-os:README.md:160-163`.
+
 Cloudflare Access and AI Gateway appear as environment bindings and model
-routing/cost infrastructure in `packages/workshop-backend/src/ai-models.ts`
-and Worker configuration. They are not substitutes for Laravel policies,
+routing/cost infrastructure in
+`cloudflare/cloudflare-os:packages/workshop-backend/src/ai-models.ts:1-20` and
+Worker configuration. They are not substitutes for Laravel policies,
 signed run envelopes, or Musaed's control-plane credential custody.
 
 The README explicitly marks self-hosted workerd deployment:
@@ -83,7 +112,8 @@ The README explicitly marks self-hosted workerd deployment:
 > “**COMING SOON**”
 
 and says documentation/tooling for smooth deployment on own servers is still
-being developed (`README.md:93-97`). Even if workerd is eventually suitable,
+being developed (`cloudflare/cloudflare-os:README.md:196-200`). Even if
+workerd is eventually suitable,
 Musaed would still need replacements for Durable Objects, Facets, Dynamic
 Workers, Cap'n Web service RPC, Access configuration, and AI Gateway.
 
@@ -96,19 +126,24 @@ its platform primitives.
 ### Cloudflare's model
 
 The contracts in
-`packages/workshop-shared/src/gatekeeper.ts` define a resource-oriented
+`cloudflare/cloudflare-os:packages/workshop-shared/src/gatekeeper.ts:79-113`
+define a
+resource-oriented
 Gatekeeper. A resource has a canonical URL, display metadata, a suggested
 binding name, and a TypeScript type name. A capability reaches generated code
-as a named binding assembled by `overseer.ts:getEnvForAgent()`. The generated
-code receives loopback RPC stubs for selected gatekeeper resources, not the
-whole Worker environment.
+as a named binding assembled by
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:2053-2097`.
+The generated code receives loopback RPC stubs for selected gatekeeper
+resources, not the whole Worker environment.
 
 Credentials remain behind the Gatekeeper/account Worker. For example,
-`packages/gatekeeper-github/src/github.ts:1115` stores an OAuth token with:
+`cloudflare/cloudflare-os:packages/gatekeeper-github/src/github.ts:1115`
+stores an OAuth token with:
 
 > `this.ctx.storage.kv.put("accessToken", grant.accessToken);`
 
-`packages/mcp-shared/src/account.ts:2` describes the account object as the:
+`cloudflare/cloudflare-os:packages/mcp-shared/src/account.ts:2` describes the
+account object as the:
 
 > “only place an access token is stored, refreshed, or handed out.”
 
@@ -118,40 +153,47 @@ exclusion. It is not a generic policy DSL. In particular, a generic field
 masking engine and a general gatekeeper rate-limit DSL are **not present**.
 
 The MCP trust boundary is
-`packages/mcp-shared/src/tools.ts:142-183`. It classifies:
+`cloudflare/cloudflare-os:packages/mcp-shared/src/tools.ts:38-58`. It
+classifies:
 
 > “`read` runs immediately and is recorded as an observation; `action` goes to
 > the queue.”
 
-The implementation uses `readOnlyHint === true` for reads. Writes are queued;
+The implementation uses `readOnlyHint === true` for reads
+(`cloudflare/cloudflare-os:packages/mcp-shared/src/tools.ts:47-50`). Writes are queued;
 auto-application additionally requires a vetted endpoint and safe annotations.
 
 ### Observation log and enforcement
 
-`packages/workshop-backend/src/overseer.ts:424-461` defines `ActionRecord`
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:424-461`
+defines `ActionRecord`
 variants for actions, observations, and bind hooks. Common fields include the
 record ID, gatekeeper ID, caller, resource title/URL, creation time, and state.
 An observation carries an `ObservationDescription` with title, full
 description, `prohibitAllSharing`, and `excludeObservers`.
 
-`authorizeObservation()` at `overseer.ts:2644-2685` checks sensitive-sharing
-flags, updates lockdown/observer state, and stores an approved observation in
-the workspace Durable Object's `storage.actions`. Built-in reads use a
-separate record path with sentinel gatekeeper ID `-1`.
+`authorizeObservation()` at
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:2644-2685`
+checks sensitive-sharing flags, updates lockdown/observer state, and stores an
+approved observation in the workspace Durable Object's `storage.actions`.
+Built-in reads use a separate record path with sentinel gatekeeper ID `-1`.
 
 Enforcement happens at several boundaries:
 
-- workspace opening (`overseer.ts:6339-6465`) checks role, sharing lockdown,
+- workspace opening
+  (`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:6339-6465`)
+  checks role, sharing lockdown,
   and `ensureObserver()` for every resource the workspace has observed;
 - output synchronization rechecks effective sharing and observer reachability;
 - context reads call `authorizeObservation()` before returning data
-  (`packages/gatekeeper-context/src/library-read.ts`);
+  (`cloudflare/cloudflare-os:packages/gatekeeper-context/src/library-read.ts:67-75`);
 - public web fetch is blocked after sensitive observations;
 - collaborator access is lazily revoked by recomputing effective reachability;
 - `prohibitAllSharing` blocks future sharing and actions.
 
 Cloudflare's `prohibitAllSharing` is explicitly described in
-`packages/workshop-shared/src/gatekeeper.ts:209-222` as a stopgap:
+`cloudflare/cloudflare-os:packages/workshop-shared/src/gatekeeper.ts:934-937`
+as a stopgap:
 
 > “This was added as a stopgap”
 
@@ -162,7 +204,8 @@ Phase 2.
 
 ### Access requests
 
-`packages/workshop-backend/src/overseer.ts:5591-5665` creates a
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:5591-5665`
+creates a
 `connectionRequest` message with a random request ID, the resolved vendor and
 resource, reason/title, and `"pending"` state. Acceptance changes it to
 `"accepted"`, stores the gatekeeper ID, and resumes the suspended agent.
@@ -171,6 +214,9 @@ The source says:
 
 > “The denial is recorded in history and the agent sees it the next time the
 > user sends a message”
+
+Source:
+`cloudflare/cloudflare-os:packages/workshop-backend/src/overseer.ts:7878-7881`.
 
 Musaed adopts the read/write split and await-decision semantics, but does not
 add Gatekeeper interfaces yet. The MCP gateway is the likely Phase 2 home:
@@ -208,7 +254,7 @@ yet have that state; it belongs in Phase 1.
 
 We adopt `SKILL.md` with YAML `name` and `description`, lowercase-hyphenated
 names, size caps, and a Markdown body. Cloudflare validates this in
-`packages/gatekeeper-context/src/agent-skill.ts:72-140`.
+`cloudflare/cloudflare-os:packages/gatekeeper-context/src/agent-skill.ts:72-140`.
 
 The model-facing catalogue remains bounded, untrusted discovery metadata. It
 does not grant authority; reading the skill is separately governed. Musaed
@@ -233,7 +279,8 @@ to smooth over for architectural symmetry.
 ## What their absences tell us
 
 The repository has lexical retrieval, not embeddings. In
-`packages/gatekeeper-context/src/context-collection.ts:596-632`, search
+`cloudflare/cloudflare-os:packages/gatekeeper-context/src/context-collection.ts:596-632`,
+search
 lowercases whitespace tokens and scores name, description, and body matches.
 There is no application use of Vectorize or embeddings. This supports
 Musaed's existing no-vector-database rule and suggests PostgreSQL full-text
@@ -256,21 +303,25 @@ from a concrete requirement and measured failure mode.
 ## Models and attribution
 
 Cloudflare selects models in application code. `getModel()` in
-`packages/workshop-backend/src/ai-models.ts` receives model configuration,
+`cloudflare/cloudflare-os:packages/workshop-backend/src/ai-models.ts:342-369` receives
+model configuration,
 initiator, routing, session affinity, and metadata. The application builds
 metadata with:
 
 > `const metadata: GatewayMetadata = { user: initiator.id };`
 
 The metadata type includes user, source, gadget ID, chat ID, and an automated
-marker (`ai-models.ts:33-44`). AI Gateway supplies provider routing,
+marker
+(`cloudflare/cloudflare-os:packages/workshop-backend/src/ai-models.ts:33-44`).
+AI Gateway supplies provider routing,
 credential forwarding, request logs, and cost records. The application owns
 model selection, user attribution, free-tier quota decisions, BYOK routing,
 and chat/workspace cost persistence. A complete team budget model is **not
 present**.
 
 The source even leaves model-binding audit/cost work unfinished:
-`packages/workshop-backend/src/ai-models.ts:669-671` says:
+`cloudflare/cloudflare-os:packages/workshop-backend/src/ai-models.ts:669-671`
+says:
 
 > “TODO: Should we be calling authorizeObservation() here?”
 
@@ -285,8 +336,8 @@ platform supplies enterprise accounting automatically.
 
 Both roots contain an Apache License 2.0 `LICENSE`:
 
-- `/home/ubuntu/research/cloudflare-os/LICENSE`
-- `/home/ubuntu/research/cloudflare-os-starter/LICENSE`
+- `cloudflare/cloudflare-os:LICENSE`
+- `cloudflare/cloudflare-os-starter:LICENSE`
 
 No root `NOTICE` file was found. Handwritten source files do not uniformly
 carry Apache headers; generated `worker-configuration.d.ts` files do contain
