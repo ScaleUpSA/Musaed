@@ -16,7 +16,7 @@ final class AgentEventValidator
         }
 
         $rules = [
-            'type' => ['required', 'in:run.started,assistant.delta,tool.called,tool.completed,run.completed,run.failed'],
+            'type' => ['required', 'in:run.started,assistant.delta,tool.called,tool.completed,tool.blocked,run.completed,run.failed'],
             'runId' => ['required', 'string'],
             'at' => ['required', 'date'],
         ];
@@ -34,6 +34,11 @@ final class AgentEventValidator
                 'toolName' => ['required', 'string'],
                 'toolCallId' => ['required', 'string'],
                 'isError' => ['required', 'boolean'],
+            ],
+            'tool.blocked' => [
+                'toolName' => ['required', 'string'],
+                'toolCallId' => ['required', 'string'],
+                'reason' => ['required', 'string'],
             ],
             'run.failed' => [
                 'error' => ['required', 'string'],

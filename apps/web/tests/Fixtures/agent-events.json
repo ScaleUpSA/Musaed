@@ -26,6 +26,14 @@
     "at": "2030-01-01T00:00:03.000Z"
   },
   {
+    "type": "tool.blocked",
+    "runId": "run-1",
+    "toolName": "write",
+    "toolCallId": "tool-call-2",
+    "reason": "Tool write is outside the run tool allow-list.",
+    "at": "2030-01-01T00:00:03.500Z"
+  },
+  {
     "type": "run.completed",
     "runId": "run-1",
     "at": "2030-01-01T00:00:04.000Z"
