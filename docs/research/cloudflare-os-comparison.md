@@ -28,19 +28,19 @@ The standalone repository is a pnpm monorepo named `gadgets`, with
 `cloudflare/cloudflare-os:pnpm-workspace.yaml:1-4`). Its major
 boundaries are:
 
-- `cloudflare/cloudflare-os:packages/workshop-backend:1-2`: the kernel, agent
+- `cloudflare/cloudflare-os:packages/workshop-backend/`: the kernel, agent
   orchestration, workspace
   state, sharing, action/observation records, and model routing;
-- `cloudflare/cloudflare-os:packages/workshop-frontend:1-2`: the browser SPA;
-- `cloudflare/cloudflare-os:packages/workshop-shared:1-2`: RPC/API and gatekeeper
+- `cloudflare/cloudflare-os:packages/workshop-frontend/`: the browser SPA;
+- `cloudflare/cloudflare-os:packages/workshop-shared/`: RPC/API and gatekeeper
   contracts;
-- `cloudflare/cloudflare-os:packages/gatekeeper-*:1-2`: separate external-service
+- `cloudflare/cloudflare-os:packages/gatekeeper-*/`: separate external-service
   adapters;
-- `cloudflare/cloudflare-os:packages/gatekeeper-context:1-2`: context collections
+- `cloudflare/cloudflare-os:packages/gatekeeper-context/`: context collections
   and skills;
-- `cloudflare/cloudflare-os:packages/mcp-shared:1-2`: MCP client and approval
+- `cloudflare/cloudflare-os:packages/mcp-shared/`: MCP client and approval
   classification;
-- `cloudflare/cloudflare-os:packages/router:1-2`, `typed-storage`, and
+- `cloudflare/cloudflare-os:packages/router/`, `typed-storage`, and
   deployment/test packages.
 
 The repository is approximately 813 files and 22 MB in the shallow clone.
@@ -103,7 +103,7 @@ Source:
 
 Cloudflare Access and AI Gateway appear as environment bindings and model
 routing/cost infrastructure in
-`cloudflare/cloudflare-os:packages/workshop-backend/src/ai-models.ts:1-20` and
+`cloudflare/cloudflare-os:packages/workshop-backend/src/ai-models.ts` and
 Worker configuration. They are not substitutes for Laravel policies,
 signed run envelopes, or Musaed's control-plane credential custody.
 
