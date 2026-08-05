@@ -35,10 +35,13 @@ export const loadAgentConfig = (env: NodeJS.ProcessEnv): AgentConfig => {
     throw new Error("AGENT_ENVELOPE_CLOCK_SKEW_SECONDS must be a non-negative integer");
   }
 
-  const litellmUrl = required(env, "LITELLM_URL");
-  if (!URL.canParse(litellmUrl)) {
+  const configuredLitellmUrl = required(env, "LITELLM_URL");
+  if (!URL.canParse(configuredLitellmUrl)) {
     throw new Error("LITELLM_URL must be a valid URL");
   }
+  const litellmUrl = configuredLitellmUrl.replace(/\/$/, "").endsWith("/v1")
+    ? configuredLitellmUrl.replace(/\/$/, "")
+    : `${configuredLitellmUrl.replace(/\/$/, "")}/v1`;
 
   const modelRequestTimeoutMs = Number(env.MODEL_REQUEST_TIMEOUT_MS ?? 30_000);
   if (!Number.isInteger(modelRequestTimeoutMs) || modelRequestTimeoutMs < 1) {

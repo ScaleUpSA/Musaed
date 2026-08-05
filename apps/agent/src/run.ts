@@ -1,25 +1,19 @@
-import {
-  DefaultResourceLoader,
-  createAgentSession,
-  ModelRuntime,
-  SettingsManager,
-} from "@earendil-works/pi-coding-agent";
-import { InMemoryCredentialStore } from "@earendil-works/pi-ai";
 import { lstat, mkdir, realpath } from "node:fs/promises";
 import { isAbsolute, relative, resolve, sep } from "node:path";
 
 import type { AgentEvent, RunEnvelope } from "@musaed/contracts";
 
+import {
+  createAgentRuntime,
+  type AgentRuntime,
+  type AgentRuntimeSummary,
+} from "./agent-runtime.js";
 import type { AgentConfig } from "./config.js";
-import { ModelProviderError, streamModelResponse } from "./model-provider.js";
 import { RunEnvelopePolicyError } from "./envelope.js";
 
 export interface PreparedRun {
-  runId: string;
-  allowedModels: readonly string[];
-  cwd: string;
-  agentDir: string;
-  status: "prepared";
+  runtime: AgentRuntime;
+  summary: AgentRuntimeSummary;
 }
 
 export class RunPathPolicyError extends Error {
@@ -35,6 +29,10 @@ export class RunPathPolicyError extends Error {
     this.name = "RunPathPolicyError";
   }
 }
+
+const assertNever = (value: never): never => {
+  throw new Error(`Unexpected runtime event: ${String(value)}`);
+};
 
 const isOutsideRoot = (root: string, candidate: string): boolean => {
   const candidateRelative = relative(root, candidate);
@@ -96,55 +94,27 @@ export async function prepareRun(
     config.agentRunRoot,
   );
   const agentDirectory = await pathWithinRunRoot(envelope.agentDirectory, config.agentRunRoot);
-  const modelRuntime = await ModelRuntime.create({
-    credentials: new InMemoryCredentialStore(),
-    modelsPath: null,
-  });
-  modelRuntime.registerProvider("litellm", {
-    api: "openai-completions",
-    apiKey: envelope.litellmVirtualKey,
-    baseUrl: config.litellmUrl,
-    models: [{
-      id: envelope.modelName,
-      name: envelope.modelName,
-      reasoning: false,
-      input: ["text"],
-      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-      contextWindow: 128_000,
-      maxTokens: 16_384,
-    }],
-  });
-  const resourceLoader = new DefaultResourceLoader({
-    cwd: workingDirectory,
-    agentDir: agentDirectory,
-    settingsManager: SettingsManager.inMemory(),
-    noExtensions: true,
-    noSkills: true,
-    noPromptTemplates: true,
-    noThemes: true,
-    noContextFiles: true,
-  });
-  await resourceLoader.reload();
-
-  // Until the policy hook lands, a non-empty allow-list is advisory only.
-  const noTools = envelope.allowedTools.length === 0 ? "all" : undefined;
-  await createAgentSession({
-    cwd: workingDirectory,
-    agentDir: agentDirectory,
-    modelRuntime,
-    settingsManager: SettingsManager.inMemory(),
-    resourceLoader,
-    ...(noTools === undefined ? {} : { noTools }),
-  });
+  const { runtime } = await createAgentRuntime({
+    ...envelope,
+    workingDirectory,
+    agentDirectory,
+  }, config);
 
   return {
-    runId: envelope.runId,
-    allowedModels: envelope.allowedModels,
-    cwd: workingDirectory,
-    agentDir: agentDirectory,
-    status: "prepared",
+    runtime,
+    summary: {
+      runId: envelope.runId,
+      allowedModels: envelope.allowedModels,
+      cwd: workingDirectory,
+      agentDir: agentDirectory,
+      status: "prepared",
+    },
   };
 }
+
+export const closePreparedRun = async (prepared: PreparedRun): Promise<void> => {
+  await prepared.runtime.close();
+};
 
 export async function executeRun(
   envelope: RunEnvelope,
@@ -152,26 +122,77 @@ export async function executeRun(
   emit: (event: AgentEvent) => Promise<void>,
 ): Promise<void> {
   const at = () => new Date().toISOString();
+  let prepared: PreparedRun | undefined;
 
   try {
-    await prepareRun(envelope, config);
+    prepared = await prepareRun(envelope, config);
     await emit({ type: "run.started", runId: envelope.runId, at: at() });
-    for await (const text of streamModelResponse(envelope, config)) {
-      await emit({ type: "assistant.delta", runId: envelope.runId, text, at: at() });
+    let pendingEvents = Promise.resolve();
+    const enqueue = (event: AgentEvent): void => {
+      pendingEvents = pendingEvents.then(() => emit(event));
+    };
+    const outcome = await prepared.runtime.run(envelope.prompt, (event) => {
+      switch (event.type) {
+        case "assistant.delta":
+          enqueue({
+            type: "assistant.delta",
+            runId: envelope.runId,
+            text: event.text,
+            at: at(),
+          });
+          break;
+        case "tool.called":
+          enqueue({
+            type: "tool.called",
+            runId: envelope.runId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            at: at(),
+          });
+          break;
+        case "tool.completed":
+          enqueue({
+            type: "tool.completed",
+            runId: envelope.runId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            isError: event.isError,
+            at: at(),
+          });
+          break;
+        case "tool.blocked":
+          enqueue({
+            type: "tool.blocked",
+            runId: envelope.runId,
+            toolName: event.toolName,
+            toolCallId: event.toolCallId,
+            reason: event.reason,
+            at: at(),
+          });
+          break;
+        default:
+          assertNever(event);
+      }
+    });
+    await pendingEvents;
+    if (outcome === "failed") {
+      await emit({ type: "run.failed", runId: envelope.runId, error: "Run failed.", at: at() });
+    } else {
+      await emit({ type: "run.completed", runId: envelope.runId, at: at() });
     }
-    await emit({ type: "run.completed", runId: envelope.runId, at: at() });
   } catch (error) {
     console.error("Run execution failed", error);
-    const message = error instanceof ModelProviderError ? error.message : "Run failed.";
     try {
       await emit({
         type: "run.failed",
         runId: envelope.runId,
-        error: message,
+        error: "Run failed.",
         at: at(),
       });
     } catch {
       // The control plane may be unavailable while reporting the failure.
     }
+  } finally {
+    await prepared?.runtime.close();
   }
 }

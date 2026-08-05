@@ -75,9 +75,9 @@ Cancel from the UI: `AgentSession.abort()`, in-flight model request cancelled, s
 
 ## 7. Policy extension
 
-A `tool_call` hook returning `{ block: true }` for anything outside the envelope's allow-list, plus the separate `user_bash` path. Until this item lands, the allow-list is advisory only; the runtime does not enforce non-empty allow-lists.
+A pi agent loop now receives `tools: envelope.allowedTools`, and a runtime `beforeToolCall` authorisation hook blocks calls outside the signed envelope. Blocked calls produce persisted, visible `tool.blocked` events. The placeholder model uses the same pi loop through an in-process OpenAI-compatible stream, and the runtime has no `executeBash` path.
 
-**Done when:** a blocked tool provably does not execute (assert on the side effect, not the transcript); the block is recorded in the audit trail; a test covers `user_bash` independently of `tool_call`.
+**Done when:** a blocked tool provably does not execute (assert on the side effect, not the transcript); the block is recorded in the audit trail; an allowed tool executes with ordered `tool.called` and `tool.completed` events. Cancellation remains item 6, and governed observations plus approval suspension remain future work.
 
 ## 8. One custom tool
 

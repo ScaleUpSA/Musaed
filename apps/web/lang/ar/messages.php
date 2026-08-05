@@ -126,6 +126,7 @@ return [
         'tool_running' => 'قيد التنفيذ',
         'tool_completed' => 'اكتمل',
         'tool_failed' => 'فشل',
+        'tool_blocked' => 'تم الحظر',
         'artifacts' => 'المخرجات',
         'artifacts_empty' => 'ستظهر هنا المخرجات التي ينشئها التنفيذ.',
         'computer_view' => 'عرض الكمبيوتر',

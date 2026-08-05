@@ -372,6 +372,36 @@ class RunLifecycleTest extends TestCase
             ->assertJson(['code' => 'RUN_CALLBACK_REJECTED']);
     }
 
+    public function test_blocked_tool_callback_is_persisted_and_reloaded_in_the_run_transcript(): void
+    {
+        $user = User::factory()->create();
+        Http::fake(['http://agent.test/*' => Http::response(['status' => 'accepted'], 202)]);
+
+        $this->actingAs($user)->postJson('/runs', ['message' => 'Blocked tool'])->assertAccepted();
+        $run = Run::firstOrFail();
+        $envelope = collect(Http::recorded())
+            ->first(fn (array $recording): bool => str_contains($recording[0]->url(), 'agent.test'))[0]->data();
+        $token = $envelope['callbacks']['callbackToken'];
+
+        $this->withHeader('X-Run-Callback-Token', $token)
+            ->postJson('/internal/runs/events', [
+                'type' => 'tool.blocked',
+                'runId' => $run->id,
+                'toolName' => 'write',
+                'toolCallId' => 'blocked-call-1',
+                'reason' => 'Tool write is outside the run tool allow-list.',
+                'at' => now()->toISOString(),
+            ])
+            ->assertAccepted();
+
+        $this->actingAs($user)
+            ->getJson("/runs/{$run->id}/events")
+            ->assertOk()
+            ->assertJsonPath('events.0.type', 'tool.blocked')
+            ->assertJsonPath('events.0.toolCallId', 'blocked-call-1')
+            ->assertJsonPath('events.0.reason', 'Tool write is outside the run tool allow-list.');
+    }
+
     public function test_callback_credentials_are_run_scoped_and_expire_on_completion(): void
     {
         $user = User::factory()->create();

@@ -140,6 +140,14 @@ export type AgentEvent =
       at: string;
     }
   | {
+      type: "tool.blocked";
+      runId: RunId;
+      toolName: string;
+      toolCallId: string;
+      reason: string;
+      at: string;
+    }
+  | {
       type: "run.completed";
       runId: RunId;
       at: string;

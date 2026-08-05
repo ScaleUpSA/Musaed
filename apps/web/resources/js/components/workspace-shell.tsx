@@ -1,4 +1,5 @@
 import {
+    Ban,
     CheckCircle2,
     ChevronLeft,
     CircleDot,
@@ -124,6 +125,8 @@ function ToolActivity({ state }: { state: RunViewState }) {
                     <span className="flex min-w-0 items-center gap-2">
                         {tool.status === 'running' ? (
                             <LoaderCircle className="text-muted-foreground size-3.5 animate-spin" />
+                        ) : tool.status === 'blocked' ? (
+                            <Ban className="text-destructive size-3.5" />
                         ) : (
                             <CheckCircle2 className="text-muted-foreground size-3.5" />
                         )}
@@ -133,11 +136,16 @@ function ToolActivity({ state }: { state: RunViewState }) {
                         {t(
                             tool.status === 'running'
                                 ? 'workspace.tool_running'
-                                : tool.status === 'failed'
-                                  ? 'workspace.tool_failed'
-                                  : 'workspace.tool_completed',
+                                : tool.status === 'blocked'
+                                  ? 'workspace.tool_blocked'
+                                  : tool.status === 'failed'
+                                    ? 'workspace.tool_failed'
+                                    : 'workspace.tool_completed',
                         )}
                     </span>
+                    {tool.status === 'blocked' && tool.reason && (
+                        <p className="text-muted-foreground text-xs">{tool.reason}</p>
+                    )}
                 </div>
             ))}
         </div>

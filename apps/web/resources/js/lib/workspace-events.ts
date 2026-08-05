@@ -4,11 +4,9 @@ export type AgentEventSource = {
     subscribe: (onEvent: (event: AgentEvent) => void) => () => void;
 };
 
-export type ToolView = {
-    id: string;
-    name: string;
-    status: 'running' | 'completed' | 'failed';
-};
+export type ToolView =
+    | { id: string; name: string; status: 'running' | 'completed' | 'failed' }
+    | { id: string; name: string; status: 'blocked'; reason: string };
 
 export type RunViewState = {
     runId: string | null;
@@ -87,6 +85,12 @@ export function reduceAgentEvent(state: RunViewState, event: AgentEvent): RunVie
                 ...state,
                 runId: event.runId,
                 tools: state.tools.map((tool) => (tool.id === event.toolCallId ? { ...tool, status: event.isError ? 'failed' : 'completed' } : tool)),
+            };
+        case 'tool.blocked':
+            return {
+                ...state,
+                runId: event.runId,
+                tools: [...state.tools, { id: event.toolCallId, name: event.toolName, status: 'blocked', reason: event.reason }],
             };
         case 'run.completed':
             return { ...state, runId: event.runId, status: 'completed' };

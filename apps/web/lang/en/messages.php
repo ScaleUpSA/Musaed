@@ -126,6 +126,7 @@ return [
         'tool_running' => 'Running',
         'tool_completed' => 'Completed',
         'tool_failed' => 'Failed',
+        'tool_blocked' => 'Blocked',
         'artifacts' => 'Artifacts',
         'artifacts_empty' => 'Artifacts created during a run will appear here.',
         'computer_view' => 'Computer view',
