@@ -75,7 +75,9 @@ Cancel from the UI: `AgentSession.abort()`, in-flight model request cancelled, s
 
 ## 7. Policy extension
 
-A `tool_call` hook returning `{ block: true }` for anything outside the envelope's allow-list, plus the separate `user_bash` path. Until this item lands, the allow-list is advisory only; the runtime does not enforce non-empty allow-lists.
+A `tool_call` hook returning `{ block: true }` for anything outside the envelope's allow-list, plus the separate `user_bash` path. Classify every governed tool call at this boundary: a read-only call executes and records an observation; anything with an external side effect enters the approval queue. Record each observation with its run, conversation, caller, resource, and policy version. Phase 1 recording is audit-only: it does not yet enforce who may later receive observed data.
+
+Approval-required calls suspend the run until a human decision. This requires a suspended run state in the lifecycle contract; the agent must not continue against a world in which its unapproved action did not happen.
 
 **Done when:** a blocked tool provably does not execute (assert on the side effect, not the transcript); the block is recorded in the audit trail; a test covers `user_bash` independently of `tool_call`.
 
@@ -96,6 +98,21 @@ Broker service owning container lifecycle; a container-routing extension replaci
 Concurrent-run RAM and CPU, container start latency, first-token latency, teardown time.
 
 **Done when:** numbers are written into `docs/` with the method used, and we know how many concurrent runs a €50 Hetzner box actually supports.
+
+## Phase 2 — sharing and governed capabilities
+
+When sharing and collaborator-visible artifacts exist, enforce observation visibility at
+workspace opening, output delivery, and each relevant resource boundary. Until then, the
+observation log is audit-only and must not be described as the security property itself.
+
+Adopt the Gatekeeper direction at the MCP gateway boundary: a per-resource adapter owns
+credential use and exposes a narrow typed surface, with policy applied to the resource
+rather than to individual model-described tools. Do not add interfaces before a concrete
+resource earns them. Add collaborator/resource observer checks and enforcement-on-share in
+the same phase.
+
+Do not implement Cloudflare OS's `prohibitAllSharing` global lockdown as an interim
+substitute; it is a stopgap, not the sharing policy we want.
 
 ---
 

@@ -71,5 +71,5 @@ If you touched the compose stack, confirm `docker compose -f docker/compose.yml 
 - Don't add employee-facing BYOK, model pickers, or MCP installation. That is deliberately not this product.
 - Don't introduce a vector database. pgvector until measurement says otherwise.
 - Don't add cross-organisation multi-tenancy. Each org self-hosts.
-- Don't copy code from Open WebUI (branding/licence restrictions), Dify (source-available licence), or Kasm images. MIT/Apache/BSD sources only — this project is MIT.
+- Don't copy code from Open WebUI (branding/licence restrictions), Dify (source-available licence), or Kasm images. MIT/Apache/BSD sources may be learned from, but copying is a deliberate decision: a copied file keeps its own licence and headers and requires the corresponding NOTICE. We took no Cloudflare code; this repository contains only our own prose and concepts from that study.
 - Don't treat pi's `SessionManager` as a pluggable storage backend. Persist run events at the application layer.
