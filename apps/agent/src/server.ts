@@ -7,8 +7,7 @@ import { RunEnvelopeRequestSchema, type AgentEvent } from "@musaed/contracts";
 
 import { loadAgentConfig, type AgentConfig } from "./config.js";
 import { verifyRunEnvelope } from "./envelope.js";
-import { prepareRun } from "./run.js";
-import { executeRun } from "./run.js";
+import { executeRun, prepareRun, closePreparedRun } from "./run.js";
 
 const postEvent = async (
   url: string,
@@ -59,7 +58,14 @@ export const buildServer = (config: AgentConfig) => {
   app.post(
     "/runs/prepare",
     { schema: { body: RunEnvelopeRequestSchema } },
-    async (request) => prepareRun(verifyRunEnvelope(request.body, config), config),
+    async (request) => {
+      const prepared = await prepareRun(verifyRunEnvelope(request.body, config), config);
+      try {
+        return prepared.summary;
+      } finally {
+        await closePreparedRun(prepared);
+      }
+    },
   );
 
   app.post(

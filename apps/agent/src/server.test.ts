@@ -47,7 +47,7 @@ const claims = {
   expiresAt: "2030-01-01T00:00:00.000Z",
 } satisfies Omit<RunEnvelope, "signature">;
 
-const signEnvelope = (value: typeof claims): RunEnvelope => ({
+const signEnvelope = (value: Omit<RunEnvelope, "signature">): RunEnvelope => ({
   ...value,
   signature: sign(
     null,
@@ -92,6 +92,31 @@ describe("agent service", () => {
     });
 
     expect(response.statusCode).toBe(400);
+    await app.close();
+  });
+
+  it("returns only the prepared run summary and closes preparation resources", async () => {
+    const root = mkdtempSync(join(tmpdir(), "musaed-prepare-"));
+    const app = buildServer(createConfig(root));
+    const response = await app.inject({
+      method: "POST",
+      url: "/runs/prepare",
+      payload: signEnvelope({
+        ...claims,
+        modelImplementation: "fake" as const,
+        workingDirectory: join(root, "workspace"),
+        agentDirectory: join(root, "agent"),
+      }),
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({
+      runId: claims.runId,
+      allowedModels: claims.allowedModels,
+      cwd: join(root, "workspace"),
+      agentDir: join(root, "agent"),
+      status: "prepared",
+    });
     await app.close();
   });
 
